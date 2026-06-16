@@ -120,11 +120,13 @@ body {
 .fbtn.file { border-color:rgba(124,92,252,.3); color:var(--accent); }
 .fbtn.folder { border-color:rgba(91,141,239,.3); color:var(--accent2); }
 .fbtn .icon { font-size:13px; }
-/* 隐藏文件选择器——放在按钮背后，opacity=0 但可点击 */
-.file-input-wrap { position:relative; display:inline-flex; }
-.file-input-wrap input[type=file] {
-  position:absolute; inset:0; opacity:0; cursor:pointer;
-  width:100%;
+/* 隐藏文件选择器但不能用 display:none（浏览器会拦截 click） */
+.hidden-input {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none; /* 本身不接收点击，通过 JS 触发 */
 }
 
 .export-group { margin-left:auto; display:flex; align-items:center; gap:6px; }
@@ -215,15 +217,16 @@ body {
 
   <div class="input-zone">
     <div class="input-tools">
-      <!-- 文件选择按钮 — 用 label 包裹，input 透明覆盖 -->
-      <label class="fbtn file file-input-wrap">
+      <!-- 隐藏的 file input，用 JS 触发 -->
+      <input type="file" id="filePicker" class="hidden-input" multiple accept=".md,.txt,.csv,.json,.xml,.yml,.yaml,.html,.log,.java,.py,.js,.ts,.css,.pdf" onchange="handleFiles(this.files)">
+      <input type="file" id="folderPicker" class="hidden-input" webkitdirectory directory multiple onchange="handleFiles(this.files)">
+
+      <button class="fbtn file" type="button" onclick="document.getElementById('filePicker').click()">
         <span class="icon">📁</span> 选择文件
-        <input type="file" id="filePicker" multiple onchange="handleFiles(this.files)" accept=".md,.txt,.csv,.json,.xml,.yml,.yaml,.html,.log,.java,.py,.js,.ts,.css,.pdf">
-      </label>
-      <label class="fbtn folder file-input-wrap">
+      </button>
+      <button class="fbtn folder" type="button" onclick="document.getElementById('folderPicker').click()">
         <span class="icon">📂</span> 选择文件夹
-        <input type="file" id="folderPicker" webkitdirectory directory multiple onchange="handleFiles(this.files)">
-      </label>
+      </button>
 
       <!-- 导出 -->
       <div class="export-group">
