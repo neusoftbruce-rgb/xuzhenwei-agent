@@ -9,177 +9,150 @@
 :root {
   --bg:#0f0f1a; --surface:#18182a; --border:#2a2a48;
   --text:#cdcde6; --text2:#7c7ca0;
-  --accent:#7c5cfc; --accent2:#5b8def; --accent3:#4ecb71;
+  --accent:#7c5cfc; --accent2:#5b8def; --accent3:#4ecb71; --warn:#f0a050;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-body {
-  font-family: -apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;
-  background:var(--bg); color:var(--text);
-  height:100vh; height:100dvh; display:flex; overflow:hidden;
-}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);height:100vh;height:100dvh;display:flex;overflow:hidden}
 
-/* 侧边栏 */
-.sidebar {
-  width:260px; flex-shrink:0; background:var(--surface);
-  border-right:1px solid var(--border); display:flex; flex-direction:column;
-  z-index:100; transition:transform .25s;
-}
-.sidebar-hd { padding:16px; border-bottom:1px solid var(--border); }
-.sidebar-hd h2 { font-size:15px; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-.sidebar-hd .sub { font-size:10px; color:var(--text2); }
-.sidebar-list { flex:1; overflow-y:auto; padding:8px 10px; }
-.sidebar-list::-webkit-scrollbar { width:3px; }
-.sidebar-list::-webkit-scrollbar-thumb { background:var(--border); }
+.sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:transform .25s}
+.sidebar-hd{padding:16px;border-bottom:1px solid var(--border)}
+.sidebar-hd h2{font-size:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar-hd .sub{font-size:10px;color:var(--text2)}
+.sidebar-list{flex:1;overflow-y:auto;padding:8px 10px}
+.sidebar-list::-webkit-scrollbar{width:3px}
+.sidebar-list::-webkit-scrollbar-thumb{background:var(--border)}
+.cat{font-size:9px;color:var(--text2);letter-spacing:1.5px;padding:10px 0 3px 4px;font-weight:700;border-top:1px solid var(--border);margin-top:6px}
+.cat:first-child{border-top:none;margin-top:0}
+.s-item{display:flex;align-items:center;gap:6px;padding:6px 8px;margin:1px 0;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);transition:all .12s}
+.s-item:hover{background:#1e1e38;color:var(--text)}
+.s-item.on{background:rgba(124,92,252,.18);color:var(--accent2);font-weight:500}
+.s-item .n{font-size:9px;background:#1e1e38;padding:1px 5px;border-radius:3px;flex-shrink:0}
+.s-item.on .n{background:var(--accent);color:#fff}
+.recipe-item{display:block;padding:6px 8px;margin:1px 0;border-radius:6px;cursor:pointer;font-size:11.5px;color:var(--text2);transition:all .12s}
+.recipe-item:hover{background:#1e1e38;color:var(--text)}
+.recipe-item.on{background:rgba(78,203,113,.1);color:var(--accent3);font-weight:500}
 
-.cat { font-size:9px; color:var(--text2); letter-spacing:1.5px; padding:10px 0 3px 4px; font-weight:700; border-top:1px solid var(--border); margin-top:6px; }
-.cat:first-child { border-top:none; margin-top:0; }
-.s-item { display:flex; align-items:center; gap:6px; padding:6px 8px; margin:1px 0; border-radius:6px; cursor:pointer; font-size:12px; color:var(--text2); transition:all .12s; }
-.s-item:hover { background:#1e1e38; color:var(--text); }
-.s-item.on { background:rgba(124,92,252,.18); color:var(--accent2); font-weight:500; }
-.s-item .n { font-size:9px; background:#1e1e38; padding:1px 5px; border-radius:3px; flex-shrink:0; }
-.s-item.on .n { background:var(--accent); color:#fff; }
-.recipe-item { display:block; padding:6px 8px; margin:1px 0; border-radius:6px; cursor:pointer; font-size:11.5px; color:var(--text2); transition:all .12s; }
-.recipe-item:hover { background:#1e1e38; color:var(--text); }
-.recipe-item.on { background:rgba(78,203,113,.1); color:var(--accent3); font-weight:500; }
+.main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+.topbar{height:52px;flex-shrink:0;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.topbar .logo{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.topbar h1{font-size:15px;font-weight:600}
+.topbar .tag{font-size:9px;padding:2px 8px;border-radius:12px;background:rgba(240,160,80,.15);color:var(--warn)}
+.topbar .btns{margin-left:auto;display:flex;gap:6px}
+.topbar .btns button{padding:5px 12px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;white-space:nowrap}
+.topbar .btns button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.menu-btn{display:none;width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:16px;cursor:pointer}
 
-/* 主区域 */
-.main { flex:1; display:flex; flex-direction:column; min-width:0; background:var(--bg); }
+.chat{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.chat::-webkit-scrollbar{width:4px}
+.chat::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.welcome{text-align:center;padding:24px}
+.welcome .icon{font-size:40px;margin-bottom:10px}
+.welcome h2{font-size:18px;margin-bottom:6px;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.welcome p{color:var(--text2);font-size:13px;line-height:1.7}
 
-.topbar { height:52px; flex-shrink:0; padding:0 16px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
-.topbar .logo { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
-.topbar h1 { font-size:15px; font-weight:600; }
-.topbar .tag { font-size:9px; padding:2px 8px; border-radius:12px; background:rgba(240,160,80,.15); color:#f0a050; }
-.topbar .btns { margin-left:auto; display:flex; gap:6px; align-items:center; }
-.topbar .btns button { padding:5px 12px; border-radius:14px; border:1px solid var(--border); background:transparent; color:var(--text2); font-size:11px; cursor:pointer; white-space:nowrap; }
-.topbar .btns button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
-.menu-btn { display:none; width:32px; height:32px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text2); font-size:16px; cursor:pointer; }
+.msg{max-width:85%;animation:fadeIn .25s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end}
+.msg.ai,.msg.reason,.msg.recommend{align-self:flex-start}
+.msg.sys{align-self:center;max-width:70%}
 
-/* 对话 */
-.chat { flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
-.chat::-webkit-scrollbar { width:4px; }
-.chat::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
-.welcome { text-align:center; padding:24px; }
-.welcome .icon { font-size:40px; margin-bottom:10px; }
-.welcome h2 { font-size:18px; margin-bottom:6px; background:linear-gradient(135deg,var(--accent),var(--accent2),var(--accent3)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-.welcome p { color:var(--text2); font-size:13px; line-height:1.7; }
+.msg .b{padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.7;word-break:break-word;position:relative}
+.msg.user .b{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-bottom-right-radius:4px}
+.msg.ai .b{background:#1a1a35;border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg.sys .b{background:transparent;color:var(--text2);font-size:11px;text-align:center;padding:4px}
+.msg.reason .b{background:#16142a;border:1px solid rgba(240,160,80,.2);border-left:3px solid var(--warn);font-size:12px}
+.msg.reason .b::before{content:"🧠 深度推理中...";display:block;font-size:10px;color:var(--warn);margin-bottom:6px;font-weight:600}
+.msg.ai.final .b{background:rgba(78,203,113,.04);border-color:rgba(78,203,113,.18)}
+.msg.ai.final .b::before{content:"🎯 分析结果";display:block;font-size:10px;color:var(--accent3);margin-bottom:6px;font-weight:600}
 
-.msg { max-width:85%; animation:fadeIn .25s; }
-@keyframes fadeIn { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
-.msg.user { align-self:flex-end; }
-.msg.ai { align-self:flex-start; }
-.msg.sys { align-self:center; max-width:70%; }
-.msg.reason { align-self:flex-start; }
+/* 推荐卡片气泡 */
+.msg.recommend .b{background:rgba(124,92,252,.04);border:1px solid rgba(124,92,252,.25);padding:14px 16px}
+.msg.recommend .b::before{content:"🧠 分析你的问题...";display:block;font-size:10px;color:var(--accent);margin-bottom:8px;font-weight:600;letter-spacing:1px}
+.rec-keywords{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.rec-keywords span{font-size:9px;padding:2px 6px;border-radius:10px;background:rgba(124,92,252,.15);color:var(--accent2)}
+.rec-cards{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.rec-card{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:#1e1e38;border:1px solid var(--border);font-size:12px;cursor:default;transition:all .15s}
+.rec-card:hover{border-color:var(--accent)}
+.rec-card .rc-id{font-size:10px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:4px;font-weight:600;flex-shrink:0}
+.rec-card .rc-info{flex:1;min-width:0}
+.rec-card .rc-name{font-weight:600;font-size:12px}
+.rec-card .rc-reason{font-size:10px;color:var(--text2);margin-top:1px}
+.rec-card .rc-pct{font-size:13px;font-weight:700;color:var(--accent2);flex-shrink:0;margin-left:8px}
+.rec-card.top{border-color:rgba(240,160,80,.3);background:rgba(240,160,80,.05)}
+.rec-card.top .rc-id{background:var(--warn)}
+.rec-card.top .rc-pct{color:var(--warn)}
+.rec-actions{display:flex;gap:6px}
+.rec-actions button{padding:6px 14px;border-radius:8px;font-size:11px;cursor:pointer;font-weight:600;border:none}
+.btn-go{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.btn-recipe{background:var(--accent3);color:#000}
+.btn-swap{background:transparent;border:1px solid var(--border)!important;color:var(--text2)}
 
-.msg .b { padding:10px 14px; border-radius:14px; font-size:13.5px; line-height:1.7; word-break:break-word; }
-.msg.user .b { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border-bottom-right-radius:4px; }
-.msg.ai .b { background:#1a1a35; border:1px solid var(--border); border-bottom-left-radius:4px; }
-.msg.sys .b { background:transparent; color:var(--text2); font-size:11px; text-align:center; padding:4px; }
-.msg.reason .b { background:#16142a; border:1px solid rgba(240,160,80,.2); border-left:3px solid #f0a050; font-size:12px; }
-.msg.reason .b::before { content:"🧠 深度推理中..."; display:block; font-size:10px; color:#f0a050; margin-bottom:6px; font-weight:600; letter-spacing:1px; }
-.msg.ai.final .b { background:rgba(78,203,113,.04); border-color:rgba(78,203,113,.18); }
-.msg.ai.final .b::before { content:"🎯 分析结果"; display:block; font-size:10px; color:var(--accent3); margin-bottom:6px; font-weight:600; letter-spacing:1px; }
-.msg.ai.refined .b::before { content:"✨ 精炼版"; display:block; font-size:10px; color:var(--accent3); margin-bottom:6px; font-weight:600; }
+/* 导出按钮——在气泡右上角 */
+.export-btn{position:absolute;top:8px;right:10px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;cursor:pointer;display:none;z-index:5}
+.msg .b:hover .export-btn{display:block}
+.export-btn:hover{border-color:var(--accent3);color:var(--accent3)}
+.export-menu{position:absolute;top:28px;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px;display:none;z-index:10;min-width:120px;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.export-menu.show{display:block}
+.export-menu button{display:block;width:100%;padding:6px 10px;border:none;background:transparent;color:var(--text);font-size:11px;cursor:pointer;text-align:left;border-radius:4px}
+.export-menu button:hover{background:var(--accent);color:#fff}
 
-.msg .b h1,.msg .b h2,.msg .b h3 { margin:8px 0 4px; }
-.msg .b h2 { font-size:15px; color:var(--accent2); border-bottom:1px solid var(--border); padding-bottom:3px; }
-.msg .b h3 { font-size:13px; color:var(--accent2); }
-.msg .b strong { color:#a0a0ff; }
-.msg .b ul,.msg .b ol { margin:5px 0; padding-left:18px; }
-.msg .b li { margin:1px 0; }
-.msg .b blockquote { border-left:2px solid var(--accent); margin:6px 0; padding:3px 12px; color:var(--text2); background:rgba(124,92,252,.04); border-radius:0 5px 5px 0; }
-.msg .b code { background:var(--surface); padding:1px 5px; border-radius:3px; font-size:11px; }
-.msg .b hr { border:none; border-top:1px solid var(--border); margin:8px 0; }
-.msg .b table { border-collapse:collapse; width:100%; margin:8px 0; font-size:11px; }
-.msg .b th,.msg .b td { border:1px solid var(--border); padding:4px 8px; text-align:left; }
-.msg .b th { background:var(--surface); }
-.msg .b p { margin:3px 0; }
+.msg .b h1,.msg .b h2,.msg .b h3{margin:8px 0 4px}
+.msg .b h2{font-size:15px;color:var(--accent2);border-bottom:1px solid var(--border);padding-bottom:3px}
+.msg .b h3{font-size:13px;color:var(--accent2)}
+.msg .b strong{color:#a0a0ff}
+.msg .b ul,.msg .b ol{margin:5px 0;padding-left:18px}
+.msg .b li{margin:1px 0}
+.msg .b blockquote{border-left:2px solid var(--accent);margin:6px 0;padding:3px 12px;color:var(--text2);background:rgba(124,92,252,.04);border-radius:0 5px 5px 0}
+.msg .b code{background:var(--surface);padding:1px 5px;border-radius:3px;font-size:11px}
+.msg .b hr{border:none;border-top:1px solid var(--border);margin:8px 0}
+.msg .b p{margin:3px 0}
+.msg .b table{border-collapse:collapse;width:100%;margin:8px 0;font-size:11px}
+.msg .b th,.msg .b td{border:1px solid var(--border);padding:4px 8px;text-align:left}
+.msg .b th{background:var(--surface)}
 
-/* 推荐卡片 */
-.cards { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-.card { padding:6px 10px; border-radius:8px; background:#1e1e38; border:1px solid var(--border); font-size:11px; cursor:pointer; display:flex; align-items:center; gap:5px; }
-.card:hover { border-color:var(--accent); background:rgba(124,92,252,.08); }
-.card .cid { font-size:9px; background:var(--accent); color:#fff; padding:1px 5px; border-radius:3px; }
-.card .cpct { font-size:9px; color:var(--text2); margin-left:auto; }
-
-.typing { display:flex; gap:3px; padding:3px 0; }
-.typing span { width:4px; height:4px; background:#f0a050; border-radius:50%; animation:bounce 1.4s infinite; }
+.typing{display:flex;gap:3px;padding:3px 0}
+.typing span{width:4px;height:4px;background:var(--warn);border-radius:50%;animation:bounce 1.4s infinite}
 .typing span:nth-child(2){animation-delay:.2s}
 .typing span:nth-child(3){animation-delay:.4s}
-@keyframes bounce { 0%,80%,100%{opacity:.2;transform:translateY(0)} 40%{opacity:1;transform:translateY(-4px)} }
+@keyframes bounce{0%,80%,100%{opacity:.2;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
 
-/* 输入区 */
-.input-zone { flex-shrink:0; padding:10px 16px 14px; background:var(--surface); border-top:1px solid var(--border); }
-.input-tools { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; align-items:center; }
-.fbtn {
-  display:flex; align-items:center; gap:5px;
-  padding:5px 12px; border-radius:14px; border:1px solid var(--border);
-  background:transparent; color:var(--text2); font-size:11px;
-  cursor:pointer; transition:all .15s;
-}
-.fbtn:hover { border-color:var(--accent); color:var(--text); }
-.fbtn.file { border-color:rgba(124,92,252,.3); color:var(--accent); }
-.fbtn.folder { border-color:rgba(91,141,239,.3); color:var(--accent2); }
-.fbtn .icon { font-size:13px; }
-/* 文件选择——原生 input 覆盖在按钮上，最可靠的方案 */
-.fbtn {
-  position: relative;
-  overflow: hidden;
-}
-.fbtn input[type="file"] {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  opacity: 0;
-  cursor: pointer;
-}
+.input-zone{flex-shrink:0;padding:10px 16px 14px;background:var(--surface);border-top:1px solid var(--border)}
+.input-tools{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
+.fbtn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.fbtn:hover{border-color:var(--accent);color:var(--text)}
+.fbtn.file{border-color:rgba(124,92,252,.3);color:var(--accent)}
+.fbtn.folder{border-color:rgba(91,141,239,.3);color:var(--accent2)}
+.fbtn .icon{font-size:13px}
+.fbtn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
 
-.export-group { margin-left:auto; display:flex; align-items:center; gap:6px; }
-.export-group select { padding:5px 8px; border-radius:8px; border:1px solid var(--border); background:#1e1e38; color:var(--text); font-size:11px; cursor:pointer; }
-.export-group button { padding:5px 12px; border-radius:8px; border:1px solid var(--accent3); background:transparent; color:var(--accent3); font-size:11px; cursor:pointer; }
-.export-group button:hover { background:rgba(78,203,113,.1); }
+.input-row{display:flex;gap:8px;align-items:flex-end}
+.input-row textarea{flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#1e1e38;color:var(--text);font-size:14px;font-family:inherit;line-height:1.5;resize:none;outline:none;min-height:44px;max-height:150px}
+.input-row textarea:focus{border-color:var(--accent)}
+.input-row textarea::placeholder{color:var(--text2);font-size:13px}
+.btn-send{padding:10px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0}
+.btn-send:disabled{opacity:.4;cursor:not-allowed}
+.hint{font-size:10px;color:var(--text2);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap}
 
-.input-row { display:flex; gap:8px; align-items:flex-end; }
-.input-row textarea {
-  flex:1; padding:10px 14px; border-radius:10px; border:1px solid var(--border);
-  background:#1e1e38; color:var(--text); font-size:14px; font-family:inherit;
-  line-height:1.5; resize:none; outline:none; min-height:44px; max-height:150px;
-}
-.input-row textarea:focus { border-color:var(--accent); }
-.input-row textarea::placeholder { color:var(--text2); font-size:13px; }
-.btn-send { padding:10px 22px; border-radius:10px; border:none; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-size:14px; font-weight:600; cursor:pointer; flex-shrink:0; }
-.btn-send:disabled { opacity:.4; cursor:not-allowed; }
-.hint { font-size:10px; color:var(--text2); margin-top:6px; display:flex; gap:10px; flex-wrap:wrap; }
+.file-toast{position:fixed;bottom:80px;right:20px;background:var(--surface);border:1px solid var(--accent3);border-radius:10px;padding:8px 14px;font-size:11px;color:var(--accent3);z-index:150;animation:fadeIn .3s;max-width:300px}
 
-/* 手机 */
-@media (max-width:768px){
-  .sidebar { position:fixed; left:0; top:0; bottom:0; transform:translateX(-100%); box-shadow:0 4px 24px rgba(0,0,0,.5); }
-  .sidebar.open { transform:translateX(0); }
-  .menu-btn { display:block; }
-  .topbar h1 { font-size:14px; }
-  .topbar .tag { display:none; }
-  .msg { max-width:95%; }
-  .chat { padding:10px 12px; }
-  .msg .b { font-size:12.5px; padding:8px 12px; }
-  .input-zone { padding:8px 10px 12px; }
-  .input-row textarea { font-size:13px; min-height:40px; }
-  .btn-send { padding:9px 16px; font-size:13px; }
-  .export-group select { font-size:10px; }
-  .fbtn { font-size:10px; padding:4px 8px; }
+@media(max-width:768px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);box-shadow:0 4px 24px rgba(0,0,0,.5)}
+  .sidebar.open{transform:translateX(0)}
+  .menu-btn{display:block}
+  .topbar h1{font-size:14px}
+  .topbar .tag{display:none}
+  .msg{max-width:95%}
+  .chat{padding:10px 12px}
+  .msg .b{font-size:12.5px;padding:8px 12px}
+  .input-zone{padding:8px 10px 12px}
+  .input-row textarea{font-size:13px;min-height:40px}
+  .btn-send{padding:9px 16px;font-size:13px}
 }
-.s-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99; }
-.s-overlay.show { display:block; }
-
-/* 文件列表提示 */
-.file-toast {
-  position:fixed; bottom:80px; right:20px; background:var(--surface);
-  border:1px solid var(--accent3); border-radius:10px; padding:8px 14px;
-  font-size:11px; color:var(--accent3); z-index:150;
-  animation:fadeIn .3s; max-width:300px;
-}
+.s-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+.s-overlay.show{display:block}
 </style>
 </head>
 <body>
-
 <div class="s-overlay" id="overlay" onclick="closeSidebar()"></div>
 
 <aside class="sidebar" id="sidebar">
@@ -211,278 +184,261 @@ body {
   </header>
 
   <div class="chat" id="chat">
-    <div class="welcome">
-      <div class="icon">🤖</div>
-      <h2>你好，我是徐振伟</h2>
-      <p>默认深度思考模式 · 56种技法自动匹配<br>
-      支持 📁选择文件 或 📂选择文件夹 分析</p>
-    </div>
+    <div class="welcome"><div class="icon">🤖</div><h2>你好，我是徐振伟</h2><p>默认深度思考 · 智能推荐技法<br>输入问题，我会先告诉你用什么技法分析</p></div>
   </div>
 
   <div class="input-zone">
     <div class="input-tools">
-      <!-- 文件选择——input 直接放在按钮里，透明覆盖，原生的 click 100% 可靠 -->
-      <button class="fbtn file" type="button">
+      <label class="fbtn file" title="选择多个文件，每个≤5MB">
         <span class="icon">📁</span> 选择文件
         <input type="file" multiple accept=".md,.txt,.csv,.json,.xml,.yml,.yaml,.html,.log,.java,.py,.js,.ts,.css,.pdf" onchange="handleFiles(this.files)">
-      </button>
-      <button class="fbtn folder" type="button">
+      </label>
+      <label class="fbtn folder" title="选择文件夹，读取其中所有文本文件">
         <span class="icon">📂</span> 选择文件夹
         <input type="file" webkitdirectory directory multiple onchange="handleFiles(this.files)">
-      </button>
-
-      <!-- 导出 -->
-      <div class="export-group">
-        <select id="exportFormat">
-          <option value="WORD">📄 Word</option>
-          <option value="EXCEL">📊 Excel</option>
-          <option value="PPT">📽️ PPT</option>
-        </select>
-        <button onclick="exportLast()">⬇ 导出</button>
-      </div>
+      </label>
     </div>
     <div class="input-row">
       <textarea id="userInput" rows="1" placeholder="输入问题… Shift+Enter 换行  Enter 发送"
         onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button class="btn-send" id="sendBtn" onclick="send()">发送</button>
     </div>
-    <div class="hint">
-      <span>Enter 发送</span><span>Shift+Enter 换行</span>
-      <span>📁 文件 ≤5MB</span><span>📂 文件夹递归读取</span>
-    </div>
+    <div class="hint"><span>Enter 发送</span><span>Shift+Enter 换行</span><span>先看推荐再执行</span></div>
   </div>
 </main>
 
 <script>
 let mode='auto', fastMode=false, streaming=false;
-let lastContent=''; // 最后一条AI回复，用于导出
 
-// 加载技法列表
 fetch('/api/techniques').then(r=>r.json()).then(techs=>{
-  const list=document.getElementById('techList');
-  let cat='';
+  const list=document.getElementById('techList'); let cat='';
   techs.forEach(t=>{
-    if(t.category!==cat){ cat=t.category; const d=document.createElement('div'); d.className='cat'; d.textContent=cat; list.appendChild(d); }
-    const el=document.createElement('div'); el.className='s-item'; el.dataset.id=t.id; el.title=t.description;
+    if(t.category!==cat){cat=t.category;const d=document.createElement('div');d.className='cat';d.textContent=cat;list.appendChild(d)}
+    const el=document.createElement('div');el.className='s-item';el.dataset.id=t.id;el.title=t.description;
     el.innerHTML=`<span class="n">${t.id}</span> ${t.name}`;
-    el.onclick=()=>{setMode(t.id,`技法 ${t.id}`,el);closeSidebar();};
+    el.onclick=()=>{setMode(t.id,`技法 ${t.id}`,el);closeSidebar()};
     list.appendChild(el);
   });
-  console.log('技法加载完成:',techs.length);
 });
 
-function setMode(id,label,el){
-  mode=id;
-  document.querySelectorAll('.s-item,.recipe-item').forEach(e=>e.classList.remove('on'));
-  if(el) el.classList.add('on');
-}
-function toggleFast(){
-  fastMode=!fastMode;
-  const b=document.getElementById('fastBtn');
-  b.classList.toggle('on',fastMode);
-  b.textContent=fastMode?'⚡ 快速开':'⚡ 快速';
-  document.getElementById('statusTag').textContent=fastMode?'⚡ 快速模式':'🧠 深度思考';
-}
+function setMode(id,label,el){mode=id;document.querySelectorAll('.s-item,.recipe-item').forEach(e=>e.classList.remove('on'));if(el)el.classList.add('on')}
+function toggleFast(){fastMode=!fastMode;const b=document.getElementById('fastBtn');b.classList.toggle('on',fastMode);b.textContent=fastMode?'⚡ 快速开':'⚡ 快速';document.getElementById('statusTag').textContent=fastMode?'⚡ 快速模式':'🧠 深度思考'}
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('overlay').classList.add('show')}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show')}
 
 // ====== 文件处理 ======
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_TOTAL_CHARS = 80000; // DeepSeek 128K context 留足空间
-
-function showToast(msg, isError){
-  const t=document.createElement('div'); t.className='file-toast';
-  t.textContent=msg; if(isError) t.style.color='#f0a050';
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 3000);
-}
+const MAX_FILE_SIZE=5*1024*1024, MAX_CHARS=80000;
+function showToast(m,e){const t=document.createElement('div');t.className='file-toast';t.textContent=m;if(e)t.style.color='#f0a050';document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
 
 function handleFiles(fileList){
-  if(!fileList||fileList.length===0) return;
+  if(!fileList||fileList.length===0)return;
   const files=Array.from(fileList);
-
-  // 过滤大小
-  const tooBig=files.filter(f=>f.size>MAX_FILE_SIZE);
-  if(tooBig.length){
-    showToast(`⚠️ ${tooBig.length} 个文件超过5MB限制，已跳过：${tooBig.map(f=>f.name).join(', ')}`,true);
-  }
+  const big=files.filter(f=>f.size>MAX_FILE_SIZE);
+  if(big.length)showToast(`⚠️ ${big.length}个文件超5MB已跳过`,true);
   const valid=files.filter(f=>f.size<=MAX_FILE_SIZE);
-  if(!valid.length) return;
-
-  const chat=document.getElementById('chat');
-  const w=chat.querySelector('.welcome'); if(w) w.remove();
-
-  const names=valid.length<=3 ? valid.map(f=>f.name).join(', ') : `${valid.length} 个文件`;
-  const totalSize=valid.reduce((s,f)=>s+f.size,0);
-  addMsg('user',`📁 ${names}\n共 ${(totalSize/1024).toFixed(1)} KB`,false);
-
-  const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>',false);
+  if(!valid.length)return;
+  const w=document.getElementById('chat').querySelector('.welcome');if(w)w.remove();
+  const names=valid.length<=3?valid.map(f=>f.name).join(', '):`${valid.length} 个文件`;
+  addMsg('user',`📁 ${names}\n${(valid.reduce((s,f)=>s+f.size,0)/1024).toFixed(1)} KB`);
+  const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
   streaming=true;
-
-  // 逐个读取并合并
-  readAndAnalyze(valid, aiMsg);
+  readAndAnalyze(valid,aiMsg);
 }
 
-async function readAndAnalyze(files, aiMsg){
-  let allContent='';
-  for(const f of files){
-    try{
-      const text=await f.text();
-      const truncated=text.length>15000 ? text.substring(0,15000)+'\n...(已截断)' : text;
-      allContent+=`\n=== ${f.name} (${(f.size/1024).toFixed(1)}KB) ===\n${truncated}\n`;
-      if(allContent.length>MAX_TOTAL_CHARS){ allContent=allContent.substring(0,MAX_TOTAL_CHARS)+'\n...(总内容超限已截断)'; break; }
-    }catch(e){ allContent+=`\n=== ${f.name} ===\n[读取失败: ${e.message}]\n`; }
+async function readAndAnalyze(files,aiMsg){
+  let all='';
+  for(const f of files){try{const t=await f.text();all+=`\n=== ${f.name} ===\n${t.length>15000?t.substring(0,15000)+'\n...(截断)':t}\n`;if(all.length>MAX_CHARS){all=all.substring(0,MAX_CHARS)+'\n(超限截断)';break}}catch(e){all+=`\n=== ${f.name} ===\n[失败:${e.message}]\n`}}
+  await streamToMsg('/api/agent/think',{message:`请用56技法分析以下${files.length}个文件:\n${all}`,deepThink:!fastMode},aiMsg);
+  finish(aiMsg);
+}
+
+// ====== 发送消息（透明推荐流程） ======
+async function send(){
+  const input=document.getElementById('userInput'), text=input.value.trim();
+  if(!text||streaming)return;
+  input.value='';input.style.height='auto';streaming=true;
+  document.getElementById('sendBtn').disabled=true;
+  const chat=document.getElementById('chat');const w=chat.querySelector('.welcome');if(w)w.remove();
+  addMsg('user',text);
+
+  // 如果是手动选技法或配方，跳过推荐
+  if(mode&&mode!=='auto'&&!mode.startsWith('recipe:')){
+    const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
+    await streamToMsg('/api/agent/think',{message:text,techniqueId:mode,deepThink:!fastMode},aiMsg);
+    finish(aiMsg);return;
+  }
+  if(mode&&mode.startsWith('recipe:')){
+    const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
+    await streamToMsg('/api/agent/think',{message:text,techniqueId:mode,deepThink:!fastMode},aiMsg);
+    finish(aiMsg);return;
   }
 
-  const topic=document.getElementById('userInput').value.trim()||'请用56技法综合分析这些文件';
-  document.getElementById('userInput').value='';
-
-  // 构建分析请求
-  const analysisPrompt=`请深度分析以下 ${files.length} 个文件的内容，并用56种人机共想技法给出建议。
-
-【文件内容】
-${allContent}
-
-请从以下角度分析：
-1. 核心信息提取——这些文件讲了什么？关键数据和结论？
-2. 问题诊断——能看出什么问题、挑战或机会？
-3. 技法推荐——根据内容特点，推荐3-5条最适合分析这个问题的技法
-4. 行动建议——具体该做什么？`;
-
+  // === 透明推荐流程 ===
+  // 1. 先调推荐API
+  let recData;
   try{
-    const resp=await fetch('/api/agent/think',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({message:analysisPrompt, deepThink:!fastMode})
-    });
-    await streamResponse(resp, aiMsg);
-  }catch(e){ aiMsg.querySelector('.b').innerHTML='❌ 分析失败: '+e.message; }
+    const r=await fetch('/api/recommend/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});
+    recData=await r.json();
+  }catch(e){recData=null}
 
-  finishStream(aiMsg);
+  // 2. 显示推荐卡片
+  const recMsg=addMsg('recommend','');
+  const b=recMsg.querySelector('.b');
+  let html='';
+
+  // 关键词
+  if(recData&&recData.keywords&&recData.keywords.length){
+    html+='<div class="rec-keywords">'+recData.keywords.map(k=>`<span>${k}</span>`).join('')+'</div>';
+  }
+
+  html+=recData&&recData.explanation?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px">${recData.explanation}</div>`:'';
+  html+='<div class="rec-cards">';
+
+  if(recData&&recData.cards){
+    recData.cards.forEach((c,i)=>{
+      const top=i===0?' top':'';
+      html+=`<div class="rec-card${top}"><span class="rc-id">${c.id}</span><div class="rc-info"><div class="rc-name">${c.name}</div><div class="rc-reason">${c.reason||''}</div></div><span class="rc-pct">${c.confidence}%</span></div>`;
+    });
+  }else{
+    html+='<div style="font-size:11px;color:var(--text2)">（本地匹配未命中，将用AI自动选择）</div>';
+  }
+  html+='</div>';
+
+  // 操作按钮
+  const topId=recData&&recData.cards&&recData.cards.length>0?recData.cards[0].id:'003';
+  const recipeIds=recData&&recData.recipe?recData.recipe.techniqueIds:null;
+
+  html+='<div class="rec-actions">';
+  html+=`<button class="btn-go" onclick="executeRec('${topId}','${btoa(unescape(encodeURIComponent(text)))}')">▶ 用推荐执行</button>`;
+  if(recipeIds){
+    html+=`<button class="btn-recipe" onclick="executeRecipe('${recipeIds.join(',')}','${btoa(unescape(encodeURIComponent(text)))}',this)">📦 用组合配方</button>`;
+  }
+  html+=`<button class="btn-swap" onclick="retryRec('${btoa(unescape(encodeURIComponent(text)))}',this)">🔄 换一批推荐</button>`;
+  html+='</div>';
+
+  b.innerHTML=html;
+  scrollDown();
+  streaming=false;
+  document.getElementById('sendBtn').disabled=false;
+  document.getElementById('userInput').focus();
 }
 
-// ====== 发送消息 ======
-async function send(){
-  const input=document.getElementById('userInput');
-  const text=input.value.trim();
-  if(!text||streaming) return;
-  input.value=''; input.style.height='auto';
+// 用户点击"用推荐执行"
+async function executeRec(tid,encodedText){
+  const text=decodeURIComponent(escape(atob(encodedText)));
+  document.querySelectorAll('.rec-actions button').forEach(b=>b.disabled=true);
+  const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
   streaming=true;
-  document.getElementById('sendBtn').disabled=true;
-
-  const chat=document.getElementById('chat');
-  const w=chat.querySelector('.welcome'); if(w) w.remove();
-  addMsg('user',text,false);
-  const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>',false);
-
-  try{
-    const resp=await fetch('/api/agent/think',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({message:text, techniqueId:mode||null, deepThink:!fastMode})
-    });
-    await streamResponse(resp, aiMsg);
-  }catch(e){ aiMsg.querySelector('.b').innerHTML='❌ 连接失败'; }
-
-  finishStream(aiMsg);
+  await streamToMsg('/api/agent/think',{message:text,techniqueId:tid,deepThink:!fastMode},aiMsg);
+  finish(aiMsg);
 }
 
-async function streamResponse(resp, aiMsg){
-  const reader=resp.body.getReader(); const dec=new TextDecoder();
-  let buf='', raw='', reasonMsg=null, finalMsg=null;
+// 用户点击"用组合配方"
+async function executeRecipe(ids,encodedText,btn){
+  const text=decodeURIComponent(escape(atob(encodedText)));
+  btn.textContent='执行中...';btn.disabled=true;
+  const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
+  streaming=true;
+  // 串联执行多条技法
+  const tidList=ids.split(',');
+  for(let i=0;i<tidList.length;i++){
+    addMsg('sys',`📌 配方第${i+1}步: 技法${tidList[i]}`);
+    await streamToMsg('/api/agent/think',{message:text,techniqueId:tidList[i].trim(),deepThink:!fastMode},aiMsg);
+  }
+  finish(aiMsg);
+}
+
+// 换一批推荐
+function retryRec(encodedText,btn){
+  btn.textContent='已请求重试...';btn.disabled=true;
+  document.getElementById('userInput').value=decodeURIComponent(escape(atob(encodedText)));
+  document.getElementById('userInput').focus();
+}
+
+// ====== 流式响应处理 ======
+async function streamToMsg(url,body,aiMsg){
+  const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const reader=resp.body.getReader();const dec=new TextDecoder();
+  let buf='',raw='',reasonMsg=null,finalMsg=null;
 
   while(true){
-    const {done,value}=await reader.read(); if(done) break;
+    const{done,value}=await reader.read();if(done)break;
     buf+=dec.decode(value,{stream:true});
-    const lines=buf.split('\n'); buf=lines.pop()||'';
-
+    const lines=buf.split('\n');buf=lines.pop()||'';
     for(const line of lines){
-      if(!line.startsWith('data:')) continue;
-      try{const e=JSON.parse(line.slice(5).trim()); if(!e?.type) continue;
+      if(!line.startsWith('data:'))continue;
+      try{const e=JSON.parse(line.slice(5).trim());if(!e?.type)continue;
 
         if(e.techniqueId==='deepthink-reasoning'){
-          if(e.type==='STEP_START'){ reasonMsg=addMsg('reason','',false); raw=''; }
-          if(e.type==='STEP_CONTENT'&&reasonMsg){ raw+=e.content||''; reasonMsg.querySelector('.b').innerHTML=marked.parse(raw); }
+          if(e.type==='STEP_START'){reasonMsg=addMsg('reason','');raw=''}
+          if(e.type==='STEP_CONTENT'&&reasonMsg){raw+=e.content||'';reasonMsg.querySelector('.b').innerHTML=marked.parse(raw)}
           continue;
         }
         if(e.techniqueId==='deepthink-final'){
-          if(e.type==='STEP_START'){ finalMsg=addMsg('ai final','',false); raw=''; }
-          if(e.type==='STEP_CONTENT'&&finalMsg){ raw+=e.content||''; finalMsg.querySelector('.b').innerHTML=marked.parse(raw); lastContent=raw; }
+          if(e.type==='STEP_START'){finalMsg=addMsg('ai final','');raw=''}
+          if(e.type==='STEP_CONTENT'&&finalMsg){raw+=e.content||'';finalMsg.querySelector('.b').innerHTML=marked.parse(raw)}
           continue;
         }
-        if(e.techniqueId==='refined'){
-          if(e.type==='STEP_START'){ raw=''; aiMsg.classList.add('refined'); }
-          if(e.type==='STEP_CONTENT'){ raw+=e.content||''; aiMsg.querySelector('.b').innerHTML=marked.parse(raw); lastContent=raw; }
-          continue;
-        }
-        if(e.type==='STEP_START'&&e.stepNumber===99){ raw=''; aiMsg.classList.add('refined'); }
-        else if(e.type==='STEP_START'){ addMsg('sys','📌 '+(e.stepName||''),false); }
-        else if(e.type==='STEP_CONTENT'&&e.content){
-          raw+=e.content; aiMsg.querySelector('.b').innerHTML=marked.parse(raw); lastContent=raw;
-          if(e.techniqueId==='auto') extractCards(raw,aiMsg);
-        }
+        if(e.techniqueId==='refined'||(e.type==='STEP_START'&&e.stepNumber===99)){raw='';aiMsg.classList.add('refined')}
+        else if(e.type==='STEP_START'){addMsg('sys','📌 '+(e.stepName||''))}
+        else if(e.type==='STEP_CONTENT'&&e.content){raw+=e.content;aiMsg.querySelector('.b').innerHTML=marked.parse(raw)}
+
         scrollDown();
       }catch(ex){}
     }
   }
 }
 
-function finishStream(aiMsg){
-  const b=aiMsg.querySelector('.b');
-  if(!b?.textContent?.trim()) b.innerHTML='[空]';
-  b.querySelector('.typing')?.remove();
-  streaming=false;
-  document.getElementById('sendBtn').disabled=false;
-  document.getElementById('userInput').focus();
+function finish(aiMsg){
+  const b=aiMsg.querySelector('.b');if(!b?.textContent?.trim())b.innerHTML='[空]';b.querySelector('.typing')?.remove();
+  // 加导出按钮
+  addExportBtn(aiMsg,b);
+  streaming=false;document.getElementById('sendBtn').disabled=false;document.getElementById('userInput').focus();
 }
 
-// ====== 导出 ======
-function exportLast(){
-  const msgs=document.querySelectorAll('.msg.ai,.msg.ai.final,.msg.ai.refined');
-  if(!msgs.length){ alert('还没有AI回复可以导出'); return; }
-  const content=msgs[msgs.length-1].querySelector('.b')?.textContent?.trim();
-  if(!content){ alert('内容为空'); return; }
+// ====== 导出按钮 ======
+function addExportBtn(msgEl,bubble){
+  const wrapper=document.createElement('div');wrapper.style.position='relative';
+  bubble.parentNode.insertBefore(wrapper,bubble);wrapper.appendChild(bubble);
 
-  const format=document.getElementById('exportFormat').value;
+  const btn=document.createElement('button');btn.className='export-btn';btn.textContent='📥 ▾';btn.title='导出文档';
+  btn.onclick=function(e){e.stopPropagation();toggleExportMenu(btn,bubble.textContent.trim())};
+  wrapper.appendChild(btn);
+}
+
+function toggleExportMenu(btn,content){
+  const old=document.querySelector('.export-menu');if(old)old.remove();
+  if(!content)return;
+
+  const menu=document.createElement('div');menu.className='export-menu show';
+  menu.innerHTML=`
+    <button onclick="doExport('PPT','${btoa(unescape(encodeURIComponent(content)))}')">📽️ 导出 PPT</button>
+    <button onclick="doExport('WORD','${btoa(unescape(encodeURIComponent(content)))}')">📄 导出 Word</button>
+    <button onclick="doExport('EXCEL','${btoa(unescape(encodeURIComponent(content)))}')">📊 导出 Excel</button>
+  `;
+  btn.parentNode.appendChild(menu);
+  setTimeout(()=>document.addEventListener('click',()=>menu.remove(),{once:true}),10);
+}
+
+async function doExport(format,encodedContent){
+  const content=decodeURIComponent(escape(atob(encodedContent)));
   const title='分析报告_'+new Date().toISOString().slice(0,10);
-  fetch('/api/export',{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({content,format,title})
-  }).then(r=>{ if(!r.ok) return r.text().then(t=>{throw new Error(t)}); return r.blob(); })
-    .then(blob=>{
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-      a.download=title+(format==='WORD'?'.docx':format==='EXCEL'?'.xlsx':'.pptx');
-      a.click(); URL.revokeObjectURL(a.href);
-    }).catch(e=>showToast('导出失败: '+e.message,true));
+  try{
+    const r=await fetch('/api/export',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content,format,title})});
+    if(!r.ok){const t=await r.text();throw new Error(t)}
+    const blob=await r.blob();
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=title+(format==='WORD'?'.docx':format==='EXCEL'?'.xlsx':'.pptx');
+    a.click();URL.revokeObjectURL(a.href);
+    showToast('✅ 导出成功');
+  }catch(e){showToast('导出失败: '+e.message,true)}
 }
 
-function extractCards(text,msgEl){
-  const re=/-\s*\*\*\[(\d+)\]\s*([^*]+)\*\*\s*\((\d+)%\)\s*[—–-]\s*(.+)/g;
-  let m; const cards=[];
-  while((m=re.exec(text))!==null) cards.push({id:m[1],name:m[2].trim(),pct:m[3],reason:m[4].trim()});
-  if(!cards.length) return;
-  const c=document.createElement('div'); c.className='cards';
-  c.innerHTML='<div style="font-size:10px;color:var(--text2);margin-bottom:3px;width:100%">👇 点卡片单独执行：</div>';
-  cards.forEach(cd=>{
-    const card=document.createElement('div'); card.className='card';
-    card.innerHTML=`<span class="cid">${cd.id}</span>${cd.name}<span class="cpct">${cd.pct}%</span>`;
-    card.title=cd.reason;
-    card.onclick=()=>{setMode(cd.id,`技法 ${cd.id}`,null); document.getElementById('userInput').value=cd.reason; document.getElementById('userInput').focus();closeSidebar();};
-    c.appendChild(card);
-  });
-  msgEl.querySelector('.b').appendChild(c);
-}
-
-function addMsg(type,html,scroll=true){
-  const chat=document.getElementById('chat');
-  const div=document.createElement('div'); div.className='msg '+type;
-  const b=document.createElement('div'); b.className='b'; b.innerHTML=html;
-  div.appendChild(b); chat.appendChild(div);
-  if(scroll) scrollDown();
-  return div;
-}
-
-function scrollDown(){ const c=document.getElementById('chat'); c.scrollTop=c.scrollHeight; }
-function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,150)+'px'; }
-function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); } }
-function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('show'); }
-function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+// ====== 工具函数 ======
+function addMsg(type,html,scroll=true){const chat=document.getElementById('chat');const div=document.createElement('div');div.className='msg '+type;const b=document.createElement('div');b.className='b';b.innerHTML=html;div.appendChild(b);chat.appendChild(div);if(scroll)scrollDown();return div}
+function scrollDown(){const c=document.getElementById('chat');c.scrollTop=c.scrollHeight}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,150)+'px'}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}
 </script>
 </body>
 </html>
