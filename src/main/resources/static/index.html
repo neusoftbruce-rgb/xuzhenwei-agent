@@ -10,9 +10,10 @@
   --bg:#0f0f1a; --surface:#18182a; --border:#2a2a48;
   --text:#cdcde6; --text2:#7c7ca0;
   --accent:#7c5cfc; --accent2:#5b8def; --accent3:#4ecb71; --warn:#f0a050;
+  --gemini-bg:#1e1e30; --gemini-radius:16px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);height:100vh;height:100dvh;display:flex;overflow:hidden}
+body{font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);height:100vh;height:100dvh;display:flex;overflow:hidden;font-size:15px;line-height:1.6}
 
 .sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:all .25s}
 .sidebar.hidden{width:0;min-width:0;padding:0;overflow:hidden;border-right:none;opacity:0}
@@ -65,11 +66,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 
 .msg .b{padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.7;word-break:break-word;position:relative}
 .msg.user .b{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-bottom-right-radius:4px}
-.msg.ai .b{background:#1a1a35;border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg.ai .b{background:var(--gemini-bg);border:1px solid var(--border);border-radius:var(--gemini-radius);border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .msg.sys .b{background:transparent;color:var(--text2);font-size:11px;text-align:center;padding:4px}
-.msg.reason .b{background:#16142a;border:1px solid rgba(240,160,80,.2);border-left:3px solid var(--warn);font-size:12px}
-.msg.reason .b::before{content:"🧠 深度推理中...";display:block;font-size:10px;color:var(--warn);margin-bottom:6px;font-weight:600}
-.msg.ai.final .b{background:rgba(78,203,113,.04);border-color:rgba(78,203,113,.18)}
+.msg.reason .b{background:#16142a;border:1px solid rgba(240,160,80,.2);border-left:3px solid var(--warn);font-size:12px;border-radius:8px}
+.msg.reason .b::before{content:"🧠 思考中...";display:block;font-size:10px;color:var(--warn);margin-bottom:6px;font-weight:600;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:0.6}50%{opacity:1}}
+.msg.ai.final,.msg.ai.refined{background:transparent}
+.msg.ai.refined .b{background:rgba(78,203,113,.04);border-color:rgba(78,203,113,.18);border-radius:var(--gemini-radius);box-shadow:0 2px 8px rgba(78,203,113,.06)}
 .msg.ai.final .b::before{content:"🎯 分析结果";display:block;font-size:10px;color:var(--accent3);margin-bottom:6px;font-weight:600}
 
 /* 推荐卡片气泡 */
@@ -620,7 +623,9 @@ async function streamToMsg(url,body,aiMsg){
           if(e.type==='STEP_CONTENT'&&finalMsg){raw+=e.content||'';finalMsg.querySelector('.b').innerHTML=marked.parse(raw)}
           continue;
         }
-        if(e.techniqueId==='refined'||(e.type==='STEP_START'&&e.stepNumber===99)){raw='';aiMsg.classList.add('refined')}
+        // 精炼阶段: 重置raw, 然后接收最终报告内容
+        if(e.type==='STEP_START'&&e.stepNumber===99){raw='';aiMsg.classList.add('refined')}
+        else if(e.techniqueId==='refined'&&e.type==='STEP_CONTENT'&&e.content){raw+=e.content;aiMsg.querySelector('.b').innerHTML=marked.parse(raw)}
         else if(e.type==='STEP_START'){addMsg('sys','📌 '+(e.stepName||''))}
         else if(e.type==='STEP_CONTENT'&&e.content){raw+=e.content;aiMsg.querySelector('.b').innerHTML=marked.parse(raw)}
 
