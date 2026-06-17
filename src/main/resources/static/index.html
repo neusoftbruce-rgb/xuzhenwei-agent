@@ -168,6 +168,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 }
 .s-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
 .s-overlay.show{display:block}
+/* 侧边栏浮动切换标签 */
+.sidebar-tab{display:none;position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:200;background:var(--surface);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;padding:16px 6px;cursor:pointer;writing-mode:vertical-rl;font-size:11px;color:var(--text2);letter-spacing:2px;transition:all .2s}
+.sidebar-tab:hover{background:var(--accent);color:#fff;padding-left:10px}
+.sidebar.hidden ~ .sidebar-tab{display:block}
 </style>
 </head>
 <body>
@@ -199,6 +203,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <div id="tipsList"></div>
   </div>
 </aside>
+<div class="sidebar-tab" onclick="openSidebar()" title="展开技法面板">🔧 技法库</div>
 
 <main class="main">
   <header class="topbar">
@@ -208,7 +213,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <span class="tag" id="statusTag">🧠 深度思考</span>
     <div class="btns">
       <button id="fastBtn" onclick="toggleFast()">⚡ 快速</button>
-      <button onclick="openSidebar()">☰ 技法</button>
     </div>
   </header>
 
@@ -238,7 +242,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 </main>
 
 <script>
-let mode='auto', fastMode=false, streaming=false, currentTechLabel='';
+let mode='auto', fastMode=false, streaming=false, currentTechLabel='', retryCount=0;
 
 // 加载技法列表——按分类展示，不显示数量
 // 四大分类的描述说明
@@ -490,9 +494,20 @@ async function send(){
   // === 透明推荐流程 ===
   let recData;
   try{
-    const r=await fetch('/api/recommend/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText})});
-    recData=await r.json();
-  }catch(e){recData=null}
+    // 换一批时优先用深度推荐获取不同结果
+    const api=retryCount>0?'/api/recommend/deep':'/api/recommend/quick';
+    const r=await fetch(api,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText})});
+    if(retryCount>0){
+      // 深度推荐返回文本，需要重新解析为卡片格式(用quick兜底)
+      const deepText=await r.text();
+      const r2=await fetch('/api/recommend/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText})});
+      recData=await r2.json();
+      recData.explanation='🔄 换了一批推荐(第'+retryCount+'次):\n'+deepText;
+      retryCount=0;
+    }else{
+      recData=await r.json();
+    }
+  }catch(e){recData=null;retryCount=0;}
 
   // 显示推荐卡片
   const recMsg=addMsg('recommend','');
@@ -520,11 +535,14 @@ async function send(){
   const recipeIds=recData&&recData.recipe?recData.recipe.techniqueIds:null;
 
   html+='<div class="rec-actions">';
-  html+=`<button class="btn-go" onclick="executeRec('${topId}','${btoa(unescape(encodeURIComponent(fullText)))}')">▶ 用推荐执行</button>`;
+  // 📦 组合配方优先
   if(recipeIds){
     html+=`<button class="btn-recipe" onclick="executeRecipe('${recipeIds.join(',')}','${btoa(unescape(encodeURIComponent(fullText)))}',this)">📦 用组合配方</button>`;
   }
-  html+=`<button class="btn-swap" onclick="retryRec('${btoa(unescape(encodeURIComponent(fullText)))}',this)">🔄 换一批推荐</button>`;
+  // ▶ 单独技法其次
+  html+=`<button class="btn-go" onclick="executeRec('${topId}','${btoa(unescape(encodeURIComponent(fullText)))}')">▶ 用推荐执行</button>`;
+  // 🔄 换一批(刷新所有技法+配方)
+  html+=`<button class="btn-swap" onclick="retryRec('${btoa(unescape(encodeURIComponent(fullText)))}',this)">🔄 换一批</button>`;
   html+='</div>';
 
   b.innerHTML=html;
@@ -568,13 +586,11 @@ async function executeRecipe(ids,encodedText,btn){
 }
 
 // 换一批推荐
-function retryRec(encodedText,btn){
-  // 移除旧的推荐卡片
+async function retryRec(encodedText,btn){
+  btn.textContent='换一批中...';btn.disabled=true;
   const oldRec=document.querySelector('.msg.recommend');if(oldRec)oldRec.remove();
-  // 恢复文字到输入框并自动重新发送推荐请求
+  retryCount++; // 标记为重试，send()会用深度推荐获取不同结果
   document.getElementById('userInput').value=decodeURIComponent(escape(atob(encodedText)));
-  document.getElementById('userInput').focus();
-  // 自动重新触发推荐
   send();}
 
 // ====== 流式响应处理 ======

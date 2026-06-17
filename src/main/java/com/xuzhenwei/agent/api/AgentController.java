@@ -2,6 +2,7 @@ package com.xuzhenwei.agent.api;
 
 import com.xuzhenwei.agent.agent.*;
 import com.xuzhenwei.agent.technique.TechniqueRegistry;
+import com.xuzhenwei.agent.technique.TechniqueExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -26,17 +27,20 @@ public class AgentController {
     private final DomainAdvisor domainAdvisor;
     private final TokenSaver tokenSaver;
     private final TechniqueRegistry techniqueRegistry;
+    private final TechniqueExecutor techniqueExecutor;
 
     public AgentController(AgentEngine agentEngine,
                            DeepThinkService deepThinkService,
                            DomainAdvisor domainAdvisor,
                            TokenSaver tokenSaver,
-                           TechniqueRegistry techniqueRegistry) {
+                           TechniqueRegistry techniqueRegistry,
+                           TechniqueExecutor techniqueExecutor) {
         this.agentEngine = agentEngine;
         this.deepThinkService = deepThinkService;
         this.domainAdvisor = domainAdvisor;
         this.tokenSaver = tokenSaver;
         this.techniqueRegistry = techniqueRegistry;
+        this.techniqueExecutor = techniqueExecutor;
     }
 
     @PostMapping(value = "/think", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -146,71 +150,36 @@ public class AgentController {
     }
 
     /**
-     * 合并流程：深度推理 + 技法执行 = 1次统一推理
-     * 将技法Prompt作为推理框架，DeepSeek Reasoner在技法引导下一步完成
+     * 分步流式推理：用技法自带的多步骤Prompt，每步立即输出结果
+     * 不用DeepSeek Reasoner，直接用Chat模型（快、省token、流式反馈）
      */
     private Flux<AgentEvent> deepTechniqueThink(String message, String techniqueId, String conversationId) {
-        return Flux.create(sink -> {
-            try {
-                long start = System.currentTimeMillis();
-                var tech = techniqueRegistry.get(techniqueId);
+        var tech = techniqueRegistry.get(techniqueId);
+        String techName = tech.map(t -> "[%s] %s".formatted(t.getId(), t.getName())).orElse(techniqueId);
+        int totalSteps = tech.map(t -> t.getStepCount()).orElse(1);
 
-                // 构建技法引导的推理Prompt
-                StringBuilder techPrompt = new StringBuilder();
-                techPrompt.append("请使用以下技法框架来分析用户的问题。\n\n");
-                techPrompt.append("【用户问题】\n").append(message).append("\n\n");
+        // 注入领域知识到消息中
+        String enrichedMessage = message;
+        var matched = domainAdvisor.matchBusiness(message);
+        if (matched.isPresent()) {
+            enrichedMessage = message + "\n\n【领域背景】\n" + domainAdvisor.buildDomainContext();
+        }
 
-                if (tech.isPresent()) {
-                    var t = tech.get();
-                    techPrompt.append("【技法框架】").append(t.getName()).append("\n");
-                    techPrompt.append(t.getDescription()).append("\n\n");
-                    // 注入领域知识
-                    var matched = domainAdvisor.matchBusiness(message);
-                    if (matched.isPresent()) {
-                        techPrompt.append("【领域背景】\n").append(domainAdvisor.buildDomainContext()).append("\n\n");
-                    }
-                    techPrompt.append("请严格按照此技法的思路进行分析，并在输出中体现技法特点。\n");
-                } else {
-                    techPrompt.append("请对此问题进行深度分析。\n");
-                }
+        // 技法步骤头
+        Flux<AgentEvent> header = Flux.just(
+            AgentEvent.stepContent(0, "🧠 技法「%s」· 共%d步推理\n\n".formatted(techName, totalSteps), "tech-header")
+        );
 
-                sink.next(AgentEvent.stepStart(0, "🧠 技法深度推理中...", "deepthink-reasoning"));
-                sink.next(AgentEvent.stepContent(0, "已加载技法框架，正在执行深度推理...\n\n", "deepthink-reasoning"));
+        // 逐步骤执行，每步立即流式输出
+        Flux<AgentEvent> steps = techniqueExecutor.execute(techniqueId, enrichedMessage, conversationId);
 
-                // 第1步：用推理模型一次性完成深度分析
-                var result = deepThinkService.deepThink(techPrompt.toString(), "");
+        // 最终汇总
+        String finalMessage = enrichedMessage;
+        Flux<AgentEvent> footer = Flux.just(
+            AgentEvent.stepContent(99, "\n\n---\n🎯 技法「%s」· %d步推理完成\n".formatted(techName, totalSteps), "done")
+        );
 
-                // 推理过程
-                sink.next(AgentEvent.stepContent(0, "### 推理过程\n\n", "deepthink-reasoning"));
-                String reasoning = result.reasoning();
-                if (reasoning != null) {
-                    if (reasoning.length() > 1500) reasoning = reasoning.substring(0, 1500) + "\n\n...(推理过程较长，已截断)";
-                    for (String line : reasoning.split("\n")) {
-                        sink.next(AgentEvent.stepContent(0, line + "\n", "deepthink-reasoning"));
-                    }
-                }
-                sink.next(AgentEvent.stepComplete(0, "deepthink-reasoning"));
-
-                // 第2步：精炼最终答案
-                sink.next(AgentEvent.stepStart(99, "📝 整理输出", "deepthink-final"));
-                String finalAnswer = result.finalAnswer();
-                if (finalAnswer != null) {
-                    for (String line : finalAnswer.split("\n")) {
-                        sink.next(AgentEvent.stepContent(99, line + "\n", "deepthink-final"));
-                    }
-                }
-                sink.next(AgentEvent.stepContent(99,
-                        "\n\n*⏱ 耗时 %.1f 秒 · 🧠 技法深度推理*".formatted((System.currentTimeMillis() - start) / 1000.0),
-                        "deepthink-final"));
-                sink.next(AgentEvent.stepComplete(99, "deepthink-final"));
-                sink.complete();
-
-            } catch (Exception e) {
-                log.error("技法深度推理异常", e);
-                sink.next(AgentEvent.error("推理异常: " + e.getMessage()));
-                sink.complete();
-            }
-        });
+        return header.concatWith(steps).concatWith(footer);
     }
 
     public record ThinkRequest(
