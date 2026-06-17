@@ -42,7 +42,7 @@ public class ExpertPanelTechnique implements Technique {
 
     @Override public String getId() { return "005"; }
     @Override public String getName() { return "虚拟专家团"; }
-    @Override public String getCategory() { return "第1部·立刻获得灵感"; }
+    @Override public String getCategory() { return "快速产生灵感"; }
     @Override public String getDescription() { return "8位虚拟专家从不同视角审视课题，模拟高成本的多维度头脑风暴"; }
     @Override public int getStepCount() { return 2; }
 

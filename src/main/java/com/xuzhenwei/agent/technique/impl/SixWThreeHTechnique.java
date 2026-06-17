@@ -26,7 +26,7 @@ public class SixWThreeHTechnique implements Technique {
 
     @Override public String getId() { return "025"; }
     @Override public String getName() { return "6W3H"; }
-    @Override public String getCategory() { return "第2部·打磨创意"; }
+    @Override public String getCategory() { return "打磨完善创意"; }
     @Override public String getDescription() { return "用9个核心维度将模糊的创意系统化为可执行的策划案"; }
     @Override public int getStepCount() { return 1; }
 

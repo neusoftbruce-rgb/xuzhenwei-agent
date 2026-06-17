@@ -211,11 +211,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <div class="input-tools">
       <label class="fbtn file" title="选择多个文件，每个≤5MB，最多10个">
         <span class="icon">📁</span> 选择文件
-        <input type="file" multiple accept=".md,.txt,.csv,.json,.xml,.yml,.yaml,.html,.log,.java,.py,.js,.ts,.css,.pdf" onchange="handleFiles(this.files)">
+        <input id="fileInput" type="file" multiple accept=".md,.txt,.csv,.json,.xml,.yml,.yaml,.html,.log,.java,.py,.js,.ts,.css,.pdf" onchange="handleFiles(this.files)">
       </label>
       <label class="fbtn folder" title="选择文件夹，读取其中所有文本文件">
         <span class="icon">📂</span> 选择文件夹
-        <input type="file" webkitdirectory directory multiple onchange="handleFiles(this.files)">
+        <input id="folderInput" type="file" webkitdirectory directory multiple onchange="handleFiles(this.files)">
       </label>
     </div>
     <div class="file-tags" id="fileTags"></div>
@@ -352,7 +352,7 @@ function handleFiles(fileList){
   if(valid.length>slots){showToast(`⚠️ 最多${MAX_FILE_COUNT}个，只保留前${slots}个`,true);valid.splice(slots)}
   valid.forEach(f=>pendingFiles.push({name:f.name,size:f.size,file:f}));
   renderFileTags();
-  document.getElementById('fileInput').value='';document.getElementById('folderInput').value='';
+  const fi=document.getElementById('fileInput');if(fi)fi.value='';const fo=document.getElementById('folderInput');if(fo)fo.value='';
 }
 
 function renderFileTags(){
@@ -538,7 +538,6 @@ async function streamToMsg(url,body,aiMsg){
   }
 }
 
-function finish(aiMsg){
 function finish(aiMsg){
   const b=aiMsg.querySelector('.b');
   if(currentTechLabel){

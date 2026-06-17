@@ -25,7 +25,7 @@ public class TenXGoalTechnique implements Technique {
 
     @Override public String getId() { return "002"; }
     @Override public String getName() { return "10倍目标"; }
-    @Override public String getCategory() { return "第1部·立刻获得灵感"; }
+    @Override public String getCategory() { return "快速产生灵感"; }
     @Override public String getDescription() { return "将目标提高10倍，强制跳出线性思维，产生颠覆性创意"; }
     @Override public int getStepCount() { return 3; }
 

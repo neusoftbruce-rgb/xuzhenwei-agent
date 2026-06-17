@@ -28,7 +28,7 @@ public class FlawedIdeaTechnique implements Technique {
 
     @Override public String getId() { return "003"; }
     @Override public String getName() { return "瑕疵创意"; }
-    @Override public String getCategory() { return "第1部·立刻获得灵感"; }
+    @Override public String getCategory() { return "快速产生灵感"; }
     @Override public String getDescription() { return "故意生成不完美的创意草案，激发你的补充欲望和二次创意"; }
     @Override public int getStepCount() { return 2; }
 
