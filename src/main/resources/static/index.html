@@ -328,18 +328,65 @@ fetch('/api/techniques').then(r=>r.json()).then(techs=>{
   });
 });
 
+// ---- 加载 AI独学 50TIPS 到侧边栏 ----
+fetch('/api/techniques').then(r=>r.json()).then(techs=>{
+  const tipsList=document.getElementById('tipsList');
+  if(!tipsList)return;
+  // 筛选出 TIPS 开头的技法
+  const tips=techs.filter(t=>t.id&&t.id.startsWith('TIPS-'));
+  if(!tips.length){tipsList.innerHTML='<div style="font-size:10px;color:var(--text2);padding:6px">加载中...</div>';return}
+
+  // 按分类组织
+  const tipsCats=['AI独学-超具体化','AI独学-输出深化','AI独学-机制化'];
+  tipsCats.forEach(cat=>{
+    const catTips=tips.filter(t=>t.category===cat);
+    if(!catTips.length)return;
+    const shortName=cat.replace('AI独学-','');
+
+    const catGroup=document.createElement('div');
+    catGroup.className='cat-group folded'; // 默认折叠
+
+    const catHd=document.createElement('div');
+    catHd.className='cat cat-toggle';
+    catHd.innerHTML='📘 '+shortName+' <span style="font-weight:400;font-size:9px;color:var(--text2)">'+catTips.length+'个</span>';
+    catHd.onclick=function(){this.parentElement.classList.toggle('folded')};
+    catGroup.appendChild(catHd);
+
+    const catBody=document.createElement('div');
+    catBody.className='cat-body';
+    catTips.forEach(t=>{
+      const el=document.createElement('div');
+      el.className='s-item';
+      el.dataset.id=t.id;
+      el.title=t.description||'';
+      el.innerHTML='<span class="n" style="background:#1e3a5c;font-size:8px">'+t.id+'</span> '+t.name;
+      el.onclick=()=>{setMode(t.id,t.name,el);closeSidebar()};
+      catBody.appendChild(el);
+    });
+    catGroup.appendChild(catBody);
+    tipsList.appendChild(catGroup);
+  });
+});
+
 function setMode(id,label,el){mode=id;document.querySelectorAll('.s-item,.recipe-item').forEach(e=>e.classList.remove('on'));if(el)el.classList.add('on');
   // 更新顶部状态标签
   const tag=document.getElementById('statusTag');
-  if(id==='')tag.innerHTML='💬 自由对话';
+  if(fastMode)tag.innerHTML='⚡ 快速模式';
+  else if(id==='')tag.innerHTML='💬 自由对话';
   else if(id==='auto')tag.innerHTML='🤖 智能推荐';
-  else if(id.startsWith('recipe:'))tag.innerHTML='📦 '+label;
+  else if(id&&id.startsWith('recipe:'))tag.innerHTML='📦 '+label;
+  else if(id&&id.startsWith('TIPS-'))tag.innerHTML='📘 独学TIPS '+id;
   else if(id)tag.innerHTML='🔧 技法 '+id+' · '+label;
   // 聊天区显示当前模式
   const old=document.getElementById('modeNotice');if(old)old.remove();
   if(id&&id!=='auto'){const n=document.createElement('div');n.id='modeNotice';n.style.cssText='text-align:center;padding:6px;margin:4px 0;font-size:11px;color:var(--accent2);background:rgba(124,92,252,.08);border-radius:8px';n.innerHTML='✅ 当前模式: <b>'+label+'</b> ['+id+'] — 输入问题后直接执行';document.getElementById('chat').appendChild(n);scrollDown()}
   }
-function toggleFast(){fastMode=!fastMode;const b=document.getElementById('fastBtn');b.classList.toggle('on',fastMode);b.textContent=fastMode?'⚡ 快速开':'⚡ 快速';document.getElementById('statusTag').textContent=fastMode?'⚡ 快速模式':'🧠 深度思考'}
+function toggleFast(){fastMode=!fastMode;const b=document.getElementById('fastBtn');const tag=document.getElementById('statusTag');
+  b.classList.toggle('on',fastMode);
+  b.innerHTML=fastMode?'<span style="color:#f0a050">⚡</span> 快速开':'⚡ 快速';
+  tag.innerHTML=fastMode?'⚡ 快速模式':'🧠 深度思考';
+  tag.style.background=fastMode?'rgba(240,160,80,.15)':'';
+  tag.style.color=fastMode?'var(--warn)':'';}
 function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('overlay').classList.add('show')}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show')}
 
