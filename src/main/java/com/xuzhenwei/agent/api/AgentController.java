@@ -71,8 +71,9 @@ public class AgentController {
                     AgentEvent.stepContent(0, "📌 " + techLabel + "\n\n", "tech-label")
             );
 
+            // 深度思考 + 技法合并为一个流程
             if (useDeepThink) {
-                return header.concatWith(deepThink(compressed, conversationId));
+                return header.concatWith(deepTechniqueThink(compressed, techniqueId, conversationId));
             }
             return header.concatWith(agentEngine.think(conversationId, compressed, techniqueId));
         }
@@ -142,6 +143,74 @@ public class AgentController {
     @GetMapping("/techniques-summary")
     public Map<String, String> techniquesSummary() {
         return Map.of("summary", agentEngine.getTechniquesSummary());
+    }
+
+    /**
+     * 合并流程：深度推理 + 技法执行 = 1次统一推理
+     * 将技法Prompt作为推理框架，DeepSeek Reasoner在技法引导下一步完成
+     */
+    private Flux<AgentEvent> deepTechniqueThink(String message, String techniqueId, String conversationId) {
+        return Flux.create(sink -> {
+            try {
+                long start = System.currentTimeMillis();
+                var tech = techniqueRegistry.get(techniqueId);
+
+                // 构建技法引导的推理Prompt
+                StringBuilder techPrompt = new StringBuilder();
+                techPrompt.append("请使用以下技法框架来分析用户的问题。\n\n");
+                techPrompt.append("【用户问题】\n").append(message).append("\n\n");
+
+                if (tech.isPresent()) {
+                    var t = tech.get();
+                    techPrompt.append("【技法框架】").append(t.getName()).append("\n");
+                    techPrompt.append(t.getDescription()).append("\n\n");
+                    // 注入领域知识
+                    var matched = domainAdvisor.matchBusiness(message);
+                    if (matched.isPresent()) {
+                        techPrompt.append("【领域背景】\n").append(domainAdvisor.buildDomainContext()).append("\n\n");
+                    }
+                    techPrompt.append("请严格按照此技法的思路进行分析，并在输出中体现技法特点。\n");
+                } else {
+                    techPrompt.append("请对此问题进行深度分析。\n");
+                }
+
+                sink.next(AgentEvent.stepStart(0, "🧠 技法深度推理中...", "deepthink-reasoning"));
+                sink.next(AgentEvent.stepContent(0, "已加载技法框架，正在执行深度推理...\n\n", "deepthink-reasoning"));
+
+                // 第1步：用推理模型一次性完成深度分析
+                var result = deepThinkService.deepThink(techPrompt.toString(), "");
+
+                // 推理过程
+                sink.next(AgentEvent.stepContent(0, "### 推理过程\n\n", "deepthink-reasoning"));
+                String reasoning = result.reasoning();
+                if (reasoning != null) {
+                    if (reasoning.length() > 1500) reasoning = reasoning.substring(0, 1500) + "\n\n...(推理过程较长，已截断)";
+                    for (String line : reasoning.split("\n")) {
+                        sink.next(AgentEvent.stepContent(0, line + "\n", "deepthink-reasoning"));
+                    }
+                }
+                sink.next(AgentEvent.stepComplete(0, "deepthink-reasoning"));
+
+                // 第2步：精炼最终答案
+                sink.next(AgentEvent.stepStart(99, "📝 整理输出", "deepthink-final"));
+                String finalAnswer = result.finalAnswer();
+                if (finalAnswer != null) {
+                    for (String line : finalAnswer.split("\n")) {
+                        sink.next(AgentEvent.stepContent(99, line + "\n", "deepthink-final"));
+                    }
+                }
+                sink.next(AgentEvent.stepContent(99,
+                        "\n\n*⏱ 耗时 %.1f 秒 · 🧠 技法深度推理*".formatted((System.currentTimeMillis() - start) / 1000.0),
+                        "deepthink-final"));
+                sink.next(AgentEvent.stepComplete(99, "deepthink-final"));
+                sink.complete();
+
+            } catch (Exception e) {
+                log.error("技法深度推理异常", e);
+                sink.next(AgentEvent.error("推理异常: " + e.getMessage()));
+                sink.complete();
+            }
+        });
     }
 
     public record ThinkRequest(

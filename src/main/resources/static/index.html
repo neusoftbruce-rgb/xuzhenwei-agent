@@ -14,7 +14,8 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);height:100vh;height:100dvh;display:flex;overflow:hidden}
 
-.sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:transform .25s}
+.sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:all .25s}
+.sidebar.hidden{width:0;min-width:0;padding:0;overflow:hidden;border-right:none;opacity:0}
 .sidebar-hd{padding:16px;border-bottom:1px solid var(--border)}
 .sidebar-hd h2{font-size:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .sidebar-hd .sub{font-size:10px;color:var(--text2)}
@@ -387,8 +388,22 @@ function toggleFast(){fastMode=!fastMode;const b=document.getElementById('fastBt
   tag.innerHTML=fastMode?'⚡ 快速模式':'🧠 深度思考';
   tag.style.background=fastMode?'rgba(240,160,80,.15)':'';
   tag.style.color=fastMode?'var(--warn)':'';}
-function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('overlay').classList.add('show')}
-function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show')}
+function openSidebar(){
+  const sb=document.getElementById('sidebar'),ov=document.getElementById('overlay');
+  if(window.innerWidth<=768){
+    sb.classList.add('open');ov.classList.add('show');
+  } else {
+    // 桌面端：切换侧边栏显示/隐藏
+    sb.classList.toggle('hidden');
+    ov.classList.toggle('show',sb.classList.contains('hidden'));
+  }
+}
+function closeSidebar(){
+  if(window.innerWidth<=768){
+    document.getElementById('sidebar').classList.remove('open');
+  }
+  document.getElementById('overlay').classList.remove('show');
+}
 
 // ====== 文件处理 ======
 const MAX_FILE_SIZE=5*1024*1024, MAX_FILE_COUNT=10, MAX_CHARS=80000;
@@ -554,10 +569,13 @@ async function executeRecipe(ids,encodedText,btn){
 
 // 换一批推荐
 function retryRec(encodedText,btn){
-  btn.textContent='已请求重试...';btn.disabled=true;
+  // 移除旧的推荐卡片
+  const oldRec=document.querySelector('.msg.recommend');if(oldRec)oldRec.remove();
+  // 恢复文字到输入框并自动重新发送推荐请求
   document.getElementById('userInput').value=decodeURIComponent(escape(atob(encodedText)));
   document.getElementById('userInput').focus();
-}
+  // 自动重新触发推荐
+  send();}
 
 // ====== 流式响应处理 ======
 async function streamToMsg(url,body,aiMsg){

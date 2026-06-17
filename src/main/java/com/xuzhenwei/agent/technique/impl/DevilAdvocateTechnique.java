@@ -26,7 +26,7 @@ public class DevilAdvocateTechnique implements Technique {
 
     @Override public String getId() { return "031"; }
     @Override public String getName() { return "挑刺模拟"; }
-    @Override public String getCategory() { return "第2部·打磨创意"; }
+    @Override public String getCategory() { return "打磨完善创意"; }
     @Override public String getDescription() { return "模拟严厉的审阅者视角，在正式提案前找出所有薄弱环节"; }
     @Override public int getStepCount() { return 2; }
 
