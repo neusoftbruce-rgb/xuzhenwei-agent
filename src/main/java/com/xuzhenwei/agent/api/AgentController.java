@@ -1,6 +1,7 @@
 package com.xuzhenwei.agent.api;
 
 import com.xuzhenwei.agent.agent.*;
+import com.xuzhenwei.agent.technique.TechniqueRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -11,7 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Agent 核心 API — 三大模式：自由对话 / 技法执行 / 深度思考
+ * Agent 核心 API
  */
 @RestController
 @RequestMapping("/api/agent")
@@ -23,33 +24,68 @@ public class AgentController {
     private final AgentEngine agentEngine;
     private final DeepThinkService deepThinkService;
     private final DomainAdvisor domainAdvisor;
+    private final TokenSaver tokenSaver;
+    private final TechniqueRegistry techniqueRegistry;
 
     public AgentController(AgentEngine agentEngine,
                            DeepThinkService deepThinkService,
-                           DomainAdvisor domainAdvisor) {
+                           DomainAdvisor domainAdvisor,
+                           TokenSaver tokenSaver,
+                           TechniqueRegistry techniqueRegistry) {
         this.agentEngine = agentEngine;
         this.deepThinkService = deepThinkService;
         this.domainAdvisor = domainAdvisor;
+        this.tokenSaver = tokenSaver;
+        this.techniqueRegistry = techniqueRegistry;
     }
 
-    /** 主对话接口（SSE流式） */
     @PostMapping(value = "/think", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<AgentEvent> think(@RequestBody ThinkRequest request) {
         String conversationId = request.projectId() != null
                 ? request.projectId()
                 : UUID.randomUUID().toString();
 
-        // 深度思考模式
-        if (request.deepThink() != null && request.deepThink()) {
-            return deepThink(request.message(), conversationId);
+        String message = request.message();
+
+        // 智能判断是否需要深度思考（省 token）
+        boolean useDeepThink;
+        if (request.deepThink() != null) {
+            useDeepThink = request.deepThink(); // 用户显式指定
+        } else {
+            useDeepThink = tokenSaver.shouldDeepThink(message); // 智能判断
         }
 
-        return agentEngine.think(conversationId, request.message(), request.techniqueId());
+        // 压缩 Prompt
+        String compressed = tokenSaver.compressPrompt(message);
+
+        // 执行技法
+        var techniqueId = request.techniqueId();
+
+        // 如果有技法ID，显示使用的技法信息
+        if (techniqueId != null && !techniqueId.isBlank()) {
+            var tech = techniqueRegistry.get(techniqueId);
+            String techLabel = tech.map(t -> "使用技法: [%s] %s".formatted(t.getId(), t.getName()))
+                    .orElse("使用技法: " + techniqueId);
+
+            Flux<AgentEvent> header = Flux.just(
+                    AgentEvent.stepContent(0, "📌 " + techLabel + "\n\n", "tech-label")
+            );
+
+            if (useDeepThink) {
+                return header.concatWith(deepThink(compressed, conversationId));
+            }
+            return header.concatWith(agentEngine.think(conversationId, compressed, techniqueId));
+        }
+
+        if (useDeepThink) {
+            return deepThink(compressed, conversationId);
+        }
+
+        return agentEngine.think(conversationId, compressed, null);
     }
 
-    /** 深度思考接口 */
     @PostMapping(value = "/deep-think", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<AgentEvent> deepThink(@RequestBody ThinkRequest request) {
+    public Flux<AgentEvent> deepThinkEndpoint(@RequestBody ThinkRequest request) {
         return deepThink(request.message(),
                 request.projectId() != null ? request.projectId() : UUID.randomUUID().toString());
     }
@@ -59,38 +95,39 @@ public class AgentController {
             try {
                 long start = System.currentTimeMillis();
 
-                // 匹配领域背景
                 String context = "";
                 var matched = domainAdvisor.matchBusiness(message);
                 if (matched.isPresent()) {
                     context = domainAdvisor.buildDomainContext();
                 }
 
-                // === 第1步：深度推理 ===
                 sink.next(AgentEvent.stepStart(1, "🧠 深度推理中...", "deepthink-reasoning"));
-                sink.next(AgentEvent.stepContent(1,
-                        "正在使用 DeepSeek Reasoner 进行深度推理分析，约 30-60 秒...\n\n", "deepthink-reasoning"));
+                sink.next(AgentEvent.stepContent(1, "智能判断需要深度分析，使用推理模型...\n\n", "deepthink-reasoning"));
 
                 var result = deepThinkService.deepThink(message, context);
 
-                // 显示推理过程
-                sink.next(AgentEvent.stepContent(1, "### 📊 推理过程\n\n", "deepthink-reasoning"));
-                String reasoning = truncateReasoning(result.reasoning(), 2000);
-                for (String line : reasoning.split("\n")) {
-                    sink.next(AgentEvent.stepContent(1, line + "\n", "deepthink-reasoning"));
+                // 推理过程（截断）
+                sink.next(AgentEvent.stepContent(1, "### 推理过程\n\n", "deepthink-reasoning"));
+                String reasoning = result.reasoning();
+                if (reasoning != null) {
+                    if (reasoning.length() > 1500) reasoning = reasoning.substring(0, 1500) + "\n\n...(推理过程较长，已截断)";
+                    for (String line : reasoning.split("\n")) {
+                        sink.next(AgentEvent.stepContent(1, line + "\n", "deepthink-reasoning"));
+                    }
                 }
                 sink.next(AgentEvent.stepComplete(1, "deepthink-reasoning"));
 
-                // === 第2步：整理答案 ===
-                sink.next(AgentEvent.stepStart(2, "📝 整理最终答案...", "deepthink-final"));
-                sink.next(AgentEvent.stepContent(2, "\n### 🎯 最终答案\n\n", "deepthink-final"));
-                for (String line : result.finalAnswer().split("\n")) {
-                    sink.next(AgentEvent.stepContent(2, line + "\n", "deepthink-final"));
+                // 最终答案
+                sink.next(AgentEvent.stepStart(2, "📝 最终答案", "deepthink-final"));
+                String finalAnswer = result.finalAnswer();
+                if (finalAnswer != null) {
+                    for (String line : finalAnswer.split("\n")) {
+                        sink.next(AgentEvent.stepContent(2, line + "\n", "deepthink-final"));
+                    }
                 }
-
-                long elapsed = System.currentTimeMillis() - start;
                 sink.next(AgentEvent.stepContent(2,
-                        "\n\n---\n*深度思考耗时 %.1f 秒*".formatted(elapsed / 1000.0), "deepthink-final"));
+                        "\n\n*⏱ 耗时 %.1f 秒 · 🧠 深度推理模式*".formatted((System.currentTimeMillis() - start) / 1000.0),
+                        "deepthink-final"));
                 sink.next(AgentEvent.stepComplete(2, "deepthink-final"));
                 sink.complete();
 
@@ -102,12 +139,6 @@ public class AgentController {
         });
     }
 
-    /** 截断过长推理文本，保留关键部分 */
-    private String truncateReasoning(String text, int maxLen) {
-        if (text == null || text.length() <= maxLen) return text;
-        return text.substring(0, maxLen) + "\n\n... *(推理过程较长，已截断显示关键部分)*";
-    }
-
     @GetMapping("/techniques-summary")
     public Map<String, String> techniquesSummary() {
         return Map.of("summary", agentEngine.getTechniquesSummary());
@@ -117,6 +148,6 @@ public class AgentController {
             String projectId,
             String message,
             String techniqueId,
-            Boolean deepThink  // 是否启用深度思考
+            Boolean deepThink
     ) {}
 }

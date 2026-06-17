@@ -319,6 +319,12 @@ async function send(){
 async function executeRec(tid,encodedText){
   const text=decodeURIComponent(escape(atob(encodedText)));
   document.querySelectorAll('.rec-actions button').forEach(b=>b.disabled=true);
+
+  // 显示技法标签
+  const card=document.querySelector(`.rec-card .rc-id`);
+  const techName=document.querySelector('.rec-card.top .rc-name')?.textContent||'技法'+tid;
+  addMsg('sys','🔧 正在使用: <b>'+techName+'</b> ['+tid+'] 分析中...');
+
   const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
   streaming=true;
   await streamToMsg('/api/agent/think',{message:text,techniqueId:tid,deepThink:!fastMode},aiMsg);
