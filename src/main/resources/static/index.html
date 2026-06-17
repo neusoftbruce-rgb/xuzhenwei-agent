@@ -158,18 +158,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 <div class="s-overlay" id="overlay" onclick="closeSidebar()"></div>
 
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-hd"><h2>🧠 56 种技法</h2><div class="sub">人机共想 · AI思考全技术</div></div>
-  <div class="sidebar-list" id="techList">
-    <div class="cat">智能模式</div>
+  <div class="sidebar-hd"><h2>🧠 分析模式</h2><div class="sub">AI 深度思考引擎</div></div>
+  <div class="sidebar-list">
+    <div class="cat">对话模式</div>
     <div class="recipe-item" data-id="" onclick="setMode('','自由对话',this)">💬 自由对话</div>
     <div class="recipe-item on" data-id="auto" onclick="setMode('auto','智能推荐',this)">🤖 智能推荐</div>
-    <div class="cat">技法组合配方</div>
+    <div class="cat">分析场景</div>
     <div class="recipe-item" data-id="recipe:创业验证套餐" onclick="setMode('recipe:创业验证套餐','创业验证',this)">📦 创业验证</div>
     <div class="recipe-item" data-id="recipe:内容创作套餐" onclick="setMode('recipe:内容创作套餐','内容创作',this)">📦 内容创作</div>
     <div class="recipe-item" data-id="recipe:客户获取套餐" onclick="setMode('recipe:客户获取套餐','客户获取',this)">📦 客户获取</div>
     <div class="recipe-item" data-id="recipe:战略规划套餐" onclick="setMode('recipe:战略规划套餐','战略规划',this)">📦 战略规划</div>
     <div class="recipe-item" data-id="recipe:提案打磨套餐" onclick="setMode('recipe:提案打磨套餐','提案打磨',this)">📦 提案打磨</div>
-    <div class="recipe-item" data-id="recipe:农业品牌套餐" onclick="setMode('recipe:农业品牌套餐','农业品牌',this)">📦 农业品牌</div>
   </div>
 </aside>
 
@@ -212,16 +211,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 <script>
 let mode='auto', fastMode=false, streaming=false;
 
-fetch('/api/techniques').then(r=>r.json()).then(techs=>{
-  const list=document.getElementById('techList'); let cat='';
-  techs.forEach(t=>{
-    if(t.category!==cat){cat=t.category;const d=document.createElement('div');d.className='cat';d.textContent=cat;list.appendChild(d)}
-    const el=document.createElement('div');el.className='s-item';el.dataset.id=t.id;el.title=t.description;
-    el.innerHTML=`<span class="n">${t.id}</span> ${t.name}`;
-    el.onclick=()=>{setMode(t.id,`技法 ${t.id}`,el);closeSidebar()};
-    list.appendChild(el);
-  });
-});
+// 56技法在后台静默运行，客户看不到技法编号和数量
 
 function setMode(id,label,el){mode=id;document.querySelectorAll('.s-item,.recipe-item').forEach(e=>e.classList.remove('on'));if(el)el.classList.add('on')}
 function toggleFast(){fastMode=!fastMode;const b=document.getElementById('fastBtn');b.classList.toggle('on',fastMode);b.textContent=fastMode?'⚡ 快速开':'⚡ 快速';document.getElementById('statusTag').textContent=fastMode?'⚡ 快速模式':'🧠 深度思考'}
