@@ -163,6 +163,7 @@ public class AgentEngine {
     private Flux<AgentEvent> executeRecipe(String recipeName, String userMessage, String conversationId) {
         // 查找匹配的配方
         var recipes = List.of(
+                // ---- 原8条配方 ----
                 new RecipeDef("创业验证套餐", List.of("002", "026", "034", "031")),
                 new RecipeDef("内容创作套餐", List.of("009", "024", "036")),
                 new RecipeDef("产品定价套餐", List.of("034", "050", "027")),
@@ -170,7 +171,13 @@ public class AgentEngine {
                 new RecipeDef("战略规划套餐", List.of("005", "015", "030", "038")),
                 new RecipeDef("提案打磨套餐", List.of("025", "031", "033")),
                 new RecipeDef("农业品牌套餐", List.of("001", "005", "028", "036")),
-                new RecipeDef("深度诊断套餐", List.of("040", "044", "045", "030"))
+                new RecipeDef("深度诊断套餐", List.of("040", "044", "045", "030")),
+                // ---- 5条农业混合工作流 (v4.0) ----
+                new RecipeDef("农技推广：发现翻译传播", List.of("054", "TIPS-44", "TIPS-07", "036")),
+                new RecipeDef("课程开发：策划验证迭代", List.of("025", "029", "037", "027", "TIPS-33")),
+                new RecipeDef("农场诊断：把脉开方跟诊", List.of("005", "040", "022", "038", "TIPS-19")),
+                new RecipeDef("农业品牌：洞察定位内容", List.of("047", "048", "051", "023", "001")),
+                new RecipeDef("学员养成：学练考用闭环", List.of("TIPS-14", "TIPS-24", "TIPS-27", "037"))
         );
 
         var matched = recipes.stream()

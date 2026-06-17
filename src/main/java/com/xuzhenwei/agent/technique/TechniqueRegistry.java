@@ -28,6 +28,9 @@ public class TechniqueRegistry {
     @Value("classpath:techniques.yml")
     private Resource techniquesYaml;
 
+    @Value("classpath:ai-self-study-tips.yml")
+    private Resource aiSelfStudyTipsYaml;
+
     /** 暂存手写Bean，等YAML加载完再合并 */
     private final List<Technique> springBeans;
 
@@ -49,11 +52,14 @@ public class TechniqueRegistry {
             registry.put(t.getId(), t);
         }
 
-        // 再从 YAML 加载
+        // 再从 YAML 加载 56 技法
         int yamlCount = loadFromYaml();
 
-        log.info("技法注册完成：手写 {} 条 + YAML {} 条 = 共 {} 条",
-                springBeans.size(), yamlCount, registry.size());
+        // 加载 50 AI独学 TIPS
+        int tipsCount = loadTipsFromYaml();
+
+        log.info("技法注册完成：手写 {} 条 + 56技法 {} 条 + 50TIPS {} 条 = 共 {} 条",
+                springBeans.size(), yamlCount, tipsCount, registry.size());
     }
 
     @SuppressWarnings("unchecked")
@@ -83,6 +89,37 @@ public class TechniqueRegistry {
 
         } catch (Exception e) {
             log.error("读取 techniques.yml 失败: {}", e.getMessage(), e);
+            return 0;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private int loadTipsFromYaml() {
+        try {
+            Yaml yaml = new Yaml();
+            Map<String, Object> data = yaml.load(aiSelfStudyTipsYaml.getInputStream());
+            List<Map<String, Object>> list = (List<Map<String, Object>>) data.get("tips");
+
+            if (list == null) {
+                log.warn("ai-self-study-tips.yml 中没有找到 tips 列表");
+                return 0;
+            }
+
+            int loaded = 0;
+            for (Map<String, Object> item : list) {
+                String id = (String) item.get("id");
+                if (registry.containsKey(id)) continue;
+
+                TechniqueFactory.TechniqueDef def = parseDef(item);
+                ConfigurableTechnique tech = new ConfigurableTechnique(def, chatClient, conversationManager);
+                registry.put(id, tech);
+                loaded++;
+            }
+            log.info("从 AI独学TIPS YAML 加载了 {} 条技法", loaded);
+            return loaded;
+
+        } catch (Exception e) {
+            log.error("读取 ai-self-study-tips.yml 失败: {}", e.getMessage(), e);
             return 0;
         }
     }
