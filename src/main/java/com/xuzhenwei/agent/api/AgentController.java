@@ -150,36 +150,18 @@ public class AgentController {
     }
 
     /**
-     * 分步流式推理：用技法自带的多步骤Prompt，每步立即输出结果
-     * 不用DeepSeek Reasoner，直接用Chat模型（快、省token、流式反馈）
+     * 分步流式推理：技法多步骤Prompt逐步执行，每步立即输出
+     * 利用TechniqueExecutor原生流式能力，前端实时看到每步进展
      */
     private Flux<AgentEvent> deepTechniqueThink(String message, String techniqueId, String conversationId) {
-        var tech = techniqueRegistry.get(techniqueId);
-        String techName = tech.map(t -> "[%s] %s".formatted(t.getId(), t.getName())).orElse(techniqueId);
-        int totalSteps = tech.map(t -> t.getStepCount()).orElse(1);
-
-        // 注入领域知识到消息中
+        // 注入领域知识
         String enrichedMessage = message;
         var matched = domainAdvisor.matchBusiness(message);
         if (matched.isPresent()) {
             enrichedMessage = message + "\n\n【领域背景】\n" + domainAdvisor.buildDomainContext();
         }
-
-        // 技法步骤头
-        Flux<AgentEvent> header = Flux.just(
-            AgentEvent.stepContent(0, "🧠 技法「%s」· 共%d步推理\n\n".formatted(techName, totalSteps), "tech-header")
-        );
-
-        // 逐步骤执行，每步立即流式输出
-        Flux<AgentEvent> steps = techniqueExecutor.execute(techniqueId, enrichedMessage, conversationId);
-
-        // 最终汇总
-        String finalMessage = enrichedMessage;
-        Flux<AgentEvent> footer = Flux.just(
-            AgentEvent.stepContent(99, "\n\n---\n🎯 技法「%s」· %d步推理完成\n".formatted(techName, totalSteps), "done")
-        );
-
-        return header.concatWith(steps).concatWith(footer);
+        // 直接委托给技法执行器（逐步骤流式输出 + 最终精炼合成）
+        return techniqueExecutor.execute(techniqueId, enrichedMessage, conversationId);
     }
 
     public record ThinkRequest(

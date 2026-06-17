@@ -77,7 +77,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .msg.recommend .b::before{content:"🧠 分析你的问题...";display:block;font-size:10px;color:var(--accent);margin-bottom:8px;font-weight:600;letter-spacing:1px}
 .rec-keywords{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
 .rec-keywords span{font-size:9px;padding:2px 6px;border-radius:10px;background:rgba(124,92,252,.15);color:var(--accent2)}
-.rec-cards{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.rec-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+@media(max-width:900px){.rec-cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.rec-cards{grid-template-columns:1fr}}
 .rec-card{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:#1e1e38;border:1px solid var(--border);font-size:12px;cursor:default;transition:all .15s}
 .rec-card:hover{border-color:var(--accent)}
 .rec-card .rc-id{font-size:10px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:4px;font-weight:600;flex-shrink:0}
@@ -494,17 +496,18 @@ async function send(){
   // === 透明推荐流程 ===
   let recData;
   try{
-    // 换一批时优先用深度推荐获取不同结果
-    const api=retryCount>0?'/api/recommend/deep':'/api/recommend/quick';
-    const r=await fetch(api,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText})});
+    // 换一批时：先LLM深度分析 + 再获取打乱后的推荐卡片
     if(retryCount>0){
-      // 深度推荐返回文本，需要重新解析为卡片格式(用quick兜底)
-      const deepText=await r.text();
-      const r2=await fetch('/api/recommend/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText})});
-      recData=await r2.json();
-      recData.explanation='🔄 换了一批推荐(第'+retryCount+'次):\n'+deepText;
+      try{
+        const dr=await fetch('/api/recommend/deep',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText})});
+        const deepText=await dr.text();
+        const r2=await fetch('/api/recommend/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText,shuffle:'true'})});
+        recData=await r2.json();
+        recData.explanation=deepText; // LLM分析结果作为推荐理由
+      }catch(e){recData=null;}
       retryCount=0;
     }else{
+      const r=await fetch('/api/recommend/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText})});
       recData=await r.json();
     }
   }catch(e){recData=null;retryCount=0;}

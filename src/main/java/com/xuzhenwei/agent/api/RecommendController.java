@@ -28,7 +28,8 @@ public class RecommendController {
     @PostMapping("/quick")
     public Map<String, Object> quickRecommend(@RequestBody Map<String, String> req) {
         String message = req.getOrDefault("message", "");
-        var result = recommender.recommend(message);
+        boolean shuffle = "true".equals(req.getOrDefault("shuffle", "false"));
+        var result = recommender.recommend(message, shuffle);
 
         // 提取匹配的关键词
         List<String> keywords = extractKeywords(message);

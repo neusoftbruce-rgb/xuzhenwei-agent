@@ -36,19 +36,24 @@ public class TechniqueRecommender {
 
     /**
      * 根据用户输入推荐技法（快速匹配模式）
-     *
-     * @return 推荐结果：单条技法、技法组合、或让用户选择
      */
     public RecommendationResult recommend(String userInput) {
+        return recommend(userInput, false);
+    }
+
+    /**
+     * 根据用户输入推荐技法（支持随机打乱，让"换一批"不重复）
+     */
+    public RecommendationResult recommend(String userInput, boolean shuffle) {
         String input = userInput.toLowerCase();
 
         // 1. 先看是否匹配领域知识库中的业务板块
         var domainMatch = domainAdvisor.matchBusiness(userInput);
 
-        // 2. 关键词 → 技法映射
-        var matches = keywordMatch(input);
+        // 2. 关键词 → 技法映射（取更多结果，shuffle时随机排序）
+        var matches = keywordMatch(input, shuffle);
 
-        // 3. 匹配对应的技法组合配方
+        // 3. 匹配技法组合配方
         var recipe = matchRecipe(input);
 
         // 4. 构建推荐结果
@@ -117,6 +122,10 @@ public class TechniqueRecommender {
 
     /** 关键词 → 技法快速匹配 */
     private List<MatchResult> keywordMatch(String input) {
+        return keywordMatch(input, false);
+    }
+
+    private List<MatchResult> keywordMatch(String input, boolean shuffle) {
         List<MatchResult> results = new ArrayList<>();
 
         // 场景关键词 → 最适合的技法
@@ -179,12 +188,35 @@ public class TechniqueRecommender {
             }
         }
 
-        // 去重、按score排序、取前3
-        return results.stream()
+        // 去重、排序、取前9条
+        var sorted = results.stream()
                 .distinct()
                 .sorted((a, b) -> Double.compare(b.score, a.score))
-                .limit(3)
-                .toList();
+                .limit(9)
+                .collect(java.util.stream.Collectors.toList());
+
+        // shuffle时：打乱顺序 + 补充3条未匹配但通用的探索性技法
+        if (shuffle && !sorted.isEmpty()) {
+            java.util.Collections.shuffle(sorted, new java.util.Random());
+            // 添加探索性技法（不重复已有的）
+            var explore = List.of(
+                match("003", 0.4, "半成品激发法——换个角度，让AI给你不完美的灵感"),
+                match("009", 0.35, "随机词碰撞法——用随机词砸出意想不到的火花"),
+                match("010", 0.35, "跨界杂交法——把两个不相关的领域强行组合试试"),
+                match("005", 0.4, "虚拟专家会诊——让8种角色同时帮你想"),
+                match("001", 0.35, "跨界特征联想法——从动物植物身上找灵感"),
+                match("054", 0.3, "最新趋势扫描——看看外面世界在发生什么"),
+                match("046", 0.3, "烦恼抽象化——把具体烦恼变成通用问题")
+            );
+            var rnd = new java.util.Random();
+            java.util.Collections.shuffle(explore, rnd);
+            for (var ex : explore) {
+                if (sorted.size() >= 9) break;
+                boolean exists = sorted.stream().anyMatch(s -> s.techniqueId.equals(ex.techniqueId));
+                if (!exists) sorted.add(ex);
+            }
+        }
+        return sorted;
     }
 
     /** 匹配技法组合配方 */
