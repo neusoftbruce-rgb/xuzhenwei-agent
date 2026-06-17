@@ -169,7 +169,8 @@ public class AgentEngine {
                 new RecipeDef("客户获取套餐", List.of("035", "048", "053")),
                 new RecipeDef("战略规划套餐", List.of("005", "015", "030", "038")),
                 new RecipeDef("提案打磨套餐", List.of("025", "031", "033")),
-                new RecipeDef("农业品牌套餐", List.of("001", "005", "028", "036"))
+                new RecipeDef("农业品牌套餐", List.of("001", "005", "028", "036")),
+                new RecipeDef("深度诊断套餐", List.of("040", "044", "045", "030"))
         );
 
         var matched = recipes.stream()

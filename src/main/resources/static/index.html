@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -115,6 +115,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .msg .b table{border-collapse:collapse;width:100%;margin:8px 0;font-size:11px}
 .msg .b th,.msg .b td{border:1px solid var(--border);padding:4px 8px;text-align:left}
 .msg .b th{background:var(--surface)}
+/* 技法标签 */
+.tech-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;margin-bottom:8px}
+.tech-badge.method{background:rgba(124,92,252,.2);color:var(--accent)}
+.tech-badge.recipe{background:rgba(78,203,113,.2);color:var(--accent3)}
 
 .typing{display:flex;gap:3px;padding:3px 0}
 .typing span{width:4px;height:4px;background:var(--warn);border-radius:50%;animation:bounce 1.4s infinite}
@@ -124,14 +128,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 
 .input-zone{flex-shrink:0;padding:10px 16px 14px;background:var(--surface);border-top:1px solid var(--border)}
 .input-tools{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
-/* 文件选择——用原生可见 input，最可靠 */
+/* 文件选择按钮 */
 .fbtn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
 .fbtn:hover{border-color:var(--accent);color:var(--text)}
 .fbtn.file{border-color:rgba(124,92,252,.3);color:var(--accent)}
 .fbtn.folder{border-color:rgba(91,141,239,.3);color:var(--accent2)}
-.fbtn .icon{font-size:13px}
-/* 原生 file input 直接可见，覆盖在 label 上 */
-.fbtn input[type=file]{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.001;cursor:pointer}
+.fbtn .icon{font-size:13px}.fbtn input[type=file]{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer}
 
 .input-row{display:flex;gap:8px;align-items:flex-end}
 .input-row textarea{flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#1e1e38;color:var(--text);font-size:14px;font-family:inherit;line-height:1.5;resize:none;outline:none;min-height:44px;max-height:150px}
@@ -142,6 +144,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .hint{font-size:10px;color:var(--text2);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap}
 
 .file-toast{position:fixed;bottom:80px;right:20px;background:var(--surface);border:1px solid var(--accent3);border-radius:10px;padding:8px 14px;font-size:11px;color:var(--accent3);z-index:150;animation:fadeIn .3s;max-width:300px}
+/* 文件标签列表 */
+.file-tags{display:none;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.file-tag{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.25);font-size:11px;color:var(--accent2);animation:fadeIn .2s}
+.ft-name{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ft-size{color:var(--text2);font-size:10px;flex-shrink:0}
+.ft-del{cursor:pointer;color:var(--text2);font-size:13px;line-height:1;padding:0 3px;border:none;background:none;flex-shrink:0;border-radius:3px}
+.ft-del:hover{color:#f05050;background:rgba(240,80,80,.1)}
 
 @media(max-width:768px){
   .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);box-shadow:0 4px 24px rgba(0,0,0,.5)}
@@ -169,12 +178,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <div class="cat">对话模式</div>
     <div class="recipe-item" data-id="" onclick="setMode('','自由对话',this)">💬 自由对话</div>
     <div class="recipe-item on" data-id="auto" onclick="setMode('auto','智能推荐',this)">🤖 智能推荐</div>
-    <div class="cat">分析场景</div>
+    <div class="cat">配方套餐</div>
     <div class="recipe-item" data-id="recipe:创业验证套餐" onclick="setMode('recipe:创业验证套餐','创业验证',this)">📦 创业验证</div>
     <div class="recipe-item" data-id="recipe:内容创作套餐" onclick="setMode('recipe:内容创作套餐','内容创作',this)">📦 内容创作</div>
     <div class="recipe-item" data-id="recipe:客户获取套餐" onclick="setMode('recipe:客户获取套餐','客户获取',this)">📦 客户获取</div>
     <div class="recipe-item" data-id="recipe:战略规划套餐" onclick="setMode('recipe:战略规划套餐','战略规划',this)">📦 战略规划</div>
     <div class="recipe-item" data-id="recipe:提案打磨套餐" onclick="setMode('recipe:提案打磨套餐','提案打磨',this)">📦 提案打磨</div>
+    <div class="recipe-item" data-id="recipe:农业品牌套餐" onclick="setMode('recipe:农业品牌套餐','农业品牌',this)">📦 农业品牌</div>
+    <div class="recipe-item" data-id="recipe:深度诊断套餐" onclick="setMode('recipe:深度诊断套餐','深度诊断',this)">📦 深度诊断</div>
+    <div class="cat">56技法 <span style="font-weight:400;color:var(--text2);font-size:9px">点击即用</span></div>
+    <div id="techList"></div>
   </div>
 </aside>
 
@@ -196,7 +209,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 
   <div class="input-zone">
     <div class="input-tools">
-      <label class="fbtn file" title="选择多个文件，每个≤5MB">
+      <label class="fbtn file" title="选择多个文件，每个≤5MB，最多10个">
         <span class="icon">📁</span> 选择文件
         <input type="file" multiple accept=".md,.txt,.csv,.json,.xml,.yml,.yaml,.html,.log,.java,.py,.js,.ts,.css,.pdf" onchange="handleFiles(this.files)">
       </label>
@@ -205,56 +218,126 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
         <input type="file" webkitdirectory directory multiple onchange="handleFiles(this.files)">
       </label>
     </div>
+    <div class="file-tags" id="fileTags"></div>
     <div class="input-row">
       <textarea id="userInput" rows="1" placeholder="输入问题… Shift+Enter 换行  Enter 发送"
         onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button class="btn-send" id="sendBtn" onclick="send()">发送</button>
     </div>
-    <div class="hint"><span>Enter 发送</span><span>Shift+Enter 换行</span><span>先看推荐再执行</span></div>
+    <div class="hint"><span>Enter 发送</span><span>Shift+Enter 换行</span><span>📁 最多10个文件</span><span>先看推荐再执行</span></div>
   </div>
 </main>
 
 <script>
-let mode='auto', fastMode=false, streaming=false;
+let mode='auto', fastMode=false, streaming=false, currentTechLabel='';
 
 // 加载技法列表——按分类展示，不显示数量
+// 四大分类的描述说明
+const CAT_DESC={
+  '快速产生灵感':'没有思路时从这里开始——用AI独特能力、自由联想、逻辑推理快速产生新点子',
+  '打磨完善创意':'已经有了初步想法？让AI帮你筛选、深化、具体化、验证',
+  '落地执行创意':'方案已成型——转化为传播策略、财务预测、行动计划',
+  '找到思考切入点':'卡住了、不知道从哪开始？先分析问题本质再动手'
+};
+const CAT_ICON={
+  '快速产生灵感':'⚡',
+  '打磨完善创意':'🔧',
+  '落地执行创意':'🚀',
+  '找到思考切入点':'🔍'
+};
+const CAT_CHAPTERS={
+  '快速产生灵感':[
+    {name:'用AI特有力量思考',ids:['001','002','003','004','005','006']},
+    {name:'用自由发想思考',ids:['007','008','009','010','011','012']},
+    {name:'用逻辑发想思考',ids:['013','014','015','016','017']}
+  ],
+  '打磨完善创意':[
+    {name:'让思考发展',ids:['018','019','020','021','022','023']},
+    {name:'让思考具体化',ids:['024','025','026']},
+    {name:'让思考验证',ids:['027','028','029','030','031','032']}
+  ],
+  '落地执行创意':[
+    {name:'思考传播方式',ids:['033','034','035','036']},
+    {name:'思考执行策略',ids:['037','038']}
+  ],
+  '找到思考切入点':[
+    {name:'分析课题得启示',ids:['039','040','041','042','043']},
+    {name:'分析烦恼得启示',ids:['044','045','046']},
+    {name:'分析人得启示',ids:['047','048','049','050','051','052','053']},
+    {name:'预测未来得启示',ids:['054','055','056']}
+  ]
+};
+
 fetch('/api/techniques').then(r=>r.json()).then(techs=>{
   const list=document.getElementById('techList');
-  let currentCat='';
-  let catGroup=null;
-  techs.forEach(t=>{
-    if(t.category!==currentCat){
-      currentCat=t.category;
-      // 分类标题（可折叠）
-      catGroup=document.createElement('div');
-      catGroup.className='cat-group';
-      const catHd=document.createElement('div');
-      catHd.className='cat cat-toggle';
-      catHd.textContent=currentCat;
-      catHd.onclick=function(){this.parentElement.classList.toggle('folded')};
-      catGroup.appendChild(catHd);
-      const catBody=document.createElement('div');
-      catBody.className='cat-body';
-      catGroup.appendChild(catBody);
-      list.appendChild(catGroup);
-    }
-    const el=document.createElement('div');
-    el.className='s-item';
-    el.dataset.id=t.id;
-    el.title=t.description;
-    el.textContent=t.name;
-    el.onclick=()=>{setMode(t.id,t.name,el);closeSidebar()};
-    if(catGroup) catGroup.querySelector('.cat-body').appendChild(el);
+  if(!list)return;
+  // 按分类组织
+  const byId={};techs.forEach(t=>{byId[t.id]=t});
+  const categories=['快速产生灵感','打磨完善创意','落地执行创意','找到思考切入点'];
+  categories.forEach(cat=>{
+    const catGroup=document.createElement('div');
+    catGroup.className='cat-group';
+
+    // 分类标题（可折叠）
+    const catHd=document.createElement('div');
+    catHd.className='cat cat-toggle';
+    catHd.innerHTML=(CAT_ICON[cat]||'')+' '+cat;
+    catHd.onclick=function(){this.parentElement.classList.toggle('folded')};
+    catGroup.appendChild(catHd);
+
+    // 分类描述
+    const catDesc=document.createElement('div');
+    catDesc.style.cssText='font-size:10px;color:var(--text2);padding:2px 4px 6px;line-height:1.5';
+    catDesc.textContent=CAT_DESC[cat]||'';
+    catGroup.appendChild(catDesc);
+
+    const catBody=document.createElement('div');
+    catBody.className='cat-body';
+
+    // 子分类（章）
+    const chapters=CAT_CHAPTERS[cat]||[];
+    chapters.forEach(ch=>{
+      const chHd=document.createElement('div');
+      chHd.style.cssText='font-size:10px;color:var(--accent2);padding:4px 4px 2px;font-weight:600;letter-spacing:.5px';
+      chHd.textContent='▸ '+ch.name;
+      catBody.appendChild(chHd);
+
+      ch.ids.forEach(id=>{
+        const t=byId[id];
+        if(!t)return;
+        const el=document.createElement('div');
+        el.className='s-item';
+        el.dataset.id=t.id;
+        el.title=t.description;
+        el.innerHTML='<span class="n">'+t.id+'</span> '+t.name;
+        el.onclick=()=>{setMode(t.id,t.name,el);closeSidebar()};
+        catBody.appendChild(el);
+      });
+    });
+
+    catGroup.appendChild(catBody);
+    list.appendChild(catGroup);
   });
 });
 
-function setMode(id,label,el){mode=id;document.querySelectorAll('.s-item,.recipe-item').forEach(e=>e.classList.remove('on'));if(el)el.classList.add('on')}
+function setMode(id,label,el){mode=id;document.querySelectorAll('.s-item,.recipe-item').forEach(e=>e.classList.remove('on'));if(el)el.classList.add('on');
+  // 更新顶部状态标签
+  const tag=document.getElementById('statusTag');
+  if(id==='')tag.innerHTML='💬 自由对话';
+  else if(id==='auto')tag.innerHTML='🤖 智能推荐';
+  else if(id.startsWith('recipe:'))tag.innerHTML='📦 '+label;
+  else if(id)tag.innerHTML='🔧 技法 '+id+' · '+label;
+  // 聊天区显示当前模式
+  const old=document.getElementById('modeNotice');if(old)old.remove();
+  if(id&&id!=='auto'){const n=document.createElement('div');n.id='modeNotice';n.style.cssText='text-align:center;padding:6px;margin:4px 0;font-size:11px;color:var(--accent2);background:rgba(124,92,252,.08);border-radius:8px';n.innerHTML='✅ 当前模式: <b>'+label+'</b> ['+id+'] — 输入问题后直接执行';document.getElementById('chat').appendChild(n);scrollDown()}
+  }
 function toggleFast(){fastMode=!fastMode;const b=document.getElementById('fastBtn');b.classList.toggle('on',fastMode);b.textContent=fastMode?'⚡ 快速开':'⚡ 快速';document.getElementById('statusTag').textContent=fastMode?'⚡ 快速模式':'🧠 深度思考'}
 function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('overlay').classList.add('show')}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show')}
 
 // ====== 文件处理 ======
-const MAX_FILE_SIZE=5*1024*1024, MAX_CHARS=80000;
+const MAX_FILE_SIZE=5*1024*1024, MAX_FILE_COUNT=10, MAX_CHARS=80000;
+let pendingFiles=[]; // {name,size,file}
 function showToast(m,e){const t=document.createElement('div');t.className='file-toast';t.textContent=m;if(e)t.style.color='#f0a050';document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
 
 function handleFiles(fileList){
@@ -264,56 +347,88 @@ function handleFiles(fileList){
   if(big.length)showToast(`⚠️ ${big.length}个文件超5MB已跳过`,true);
   const valid=files.filter(f=>f.size<=MAX_FILE_SIZE);
   if(!valid.length)return;
-  const w=document.getElementById('chat').querySelector('.welcome');if(w)w.remove();
-  const names=valid.length<=3?valid.map(f=>f.name).join(', '):`${valid.length} 个文件`;
-  addMsg('user',`📁 ${names}\n${(valid.reduce((s,f)=>s+f.size,0)/1024).toFixed(1)} KB`);
-  const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
-  streaming=true;
-  readAndAnalyze(valid,aiMsg);
+  const slots=MAX_FILE_COUNT-pendingFiles.length;
+  if(slots<=0){showToast(`⚠️ 最多${MAX_FILE_COUNT}个文件`,true);return}
+  if(valid.length>slots){showToast(`⚠️ 最多${MAX_FILE_COUNT}个，只保留前${slots}个`,true);valid.splice(slots)}
+  valid.forEach(f=>pendingFiles.push({name:f.name,size:f.size,file:f}));
+  renderFileTags();
+  document.getElementById('fileInput').value='';document.getElementById('folderInput').value='';
 }
 
-async function readAndAnalyze(files,aiMsg){
+function renderFileTags(){
+  const c=document.getElementById('fileTags');if(!c)return;
+  c.innerHTML=pendingFiles.map((f,i)=>'<span class="file-tag"><span class="ft-name" title="'+f.name+'">📄 '+f.name+'</span><span class="ft-size">'+(f.size/1024).toFixed(1)+'KB</span><button class="ft-del" onclick="removeFile('+i+')" title="移除">✕</button></span>').join('');
+  c.style.display=pendingFiles.length?'flex':'none';
+}
+
+function removeFile(i){pendingFiles.splice(i,1);renderFileTags()}
+
+async function readFilesContent(files){
   let all='';
-  for(const f of files){try{const t=await f.text();all+=`\n=== ${f.name} ===\n${t.length>15000?t.substring(0,15000)+'\n...(截断)':t}\n`;if(all.length>MAX_CHARS){all=all.substring(0,MAX_CHARS)+'\n(超限截断)';break}}catch(e){all+=`\n=== ${f.name} ===\n[失败:${e.message}]\n`}}
-  await streamToMsg('/api/agent/think',{message:`请用56技法分析以下${files.length}个文件:\n${all}`,deepThink:!fastMode},aiMsg);
-  finish(aiMsg);
+  for(const f of files){try{const t=await f.file.text();all+='\n=== '+f.name+' ===\n'+(t.length>15000?t.substring(0,15000)+'\n...(截断)':t)+'\n';if(all.length>MAX_CHARS){all=all.substring(0,MAX_CHARS)+'\n(超限截断)';break}}catch(e){all+='\n=== '+f.name+' ===\n[失败:'+e.message+']\n'}}
+  return all;
 }
 
-// ====== 发送消息（透明推荐流程） ======
+// ====== 发送消息（文件+文字+技法统一发送） ======
 async function send(){
   const input=document.getElementById('userInput'), text=input.value.trim();
-  if(!text||streaming)return;
+  if((!text&&!pendingFiles.length)||streaming)return;
+  const chat=document.getElementById('chat');const w=chat.querySelector('.welcome');if(w)w.remove();
+
+  // 读取待发送文件内容
+  let fileContent='';let filesSnapshot=[];
+  if(pendingFiles.length){
+    filesSnapshot=[...pendingFiles];
+    pendingFiles=[];renderFileTags();
+    fileContent=await readFilesContent(filesSnapshot);
+  }
+
   input.value='';input.style.height='auto';streaming=true;
   document.getElementById('sendBtn').disabled=true;
-  const chat=document.getElementById('chat');const w=chat.querySelector('.welcome');if(w)w.remove();
-  addMsg('user',text);
+
+  // 构建用户消息显示
+  let displayText=text||'(文件分析)';
+  if(filesSnapshot.length){
+    const names=filesSnapshot.length<=3?filesSnapshot.map(f=>f.name).join(', '):filesSnapshot.length+' 个文件';
+    displayText='📁 '+names+(text?'\n'+text:'');
+  }
+  addMsg('user',displayText);
+
+  // 构建完整prompt（文字 + 文件内容）
+  let fullText=text||'请分析以下文件内容';
+  if(fileContent)fullText='以下是我上传的文件内容:\n'+fileContent+'\n---\n请根据以上文件内容，回答:\n'+fullText;
 
   // 如果是手动选技法或配方，跳过推荐
   if(mode&&mode!=='auto'&&!mode.startsWith('recipe:')){
+    const sideEl=document.querySelector('.s-item[data-id="'+mode+'"]');
+    const techName=sideEl?sideEl.textContent.trim():('技法'+mode);
+    currentTechLabel=techName;
+    addMsg('sys','🔧 正在使用: <b>'+techName+'</b> 分析中...');
     const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
-    await streamToMsg('/api/agent/think',{message:text,techniqueId:mode,deepThink:!fastMode},aiMsg);
+    await streamToMsg('/api/agent/think',{message:fullText,techniqueId:mode,deepThink:!fastMode},aiMsg);
     finish(aiMsg);return;
   }
   if(mode&&mode.startsWith('recipe:')){
+    const label=mode.replace('recipe:','');
+    addMsg('sys','📦 正在使用配方: <b>'+label+'</b> 执行中...');
+    currentTechLabel='📦 '+label;
     const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
-    await streamToMsg('/api/agent/think',{message:text,techniqueId:mode,deepThink:!fastMode},aiMsg);
+    await streamToMsg('/api/agent/think',{message:fullText,techniqueId:mode,deepThink:!fastMode},aiMsg);
     finish(aiMsg);return;
   }
 
   // === 透明推荐流程 ===
-  // 1. 先调推荐API
   let recData;
   try{
-    const r=await fetch('/api/recommend/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});
+    const r=await fetch('/api/recommend/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText})});
     recData=await r.json();
   }catch(e){recData=null}
 
-  // 2. 显示推荐卡片
+  // 显示推荐卡片
   const recMsg=addMsg('recommend','');
   const b=recMsg.querySelector('.b');
   let html='';
 
-  // 关键词
   if(recData&&recData.keywords&&recData.keywords.length){
     html+='<div class="rec-keywords">'+recData.keywords.map(k=>`<span>${k}</span>`).join('')+'</div>';
   }
@@ -331,16 +446,15 @@ async function send(){
   }
   html+='</div>';
 
-  // 操作按钮
   const topId=recData&&recData.cards&&recData.cards.length>0?recData.cards[0].id:'003';
   const recipeIds=recData&&recData.recipe?recData.recipe.techniqueIds:null;
 
   html+='<div class="rec-actions">';
-  html+=`<button class="btn-go" onclick="executeRec('${topId}','${btoa(unescape(encodeURIComponent(text)))}')">▶ 用推荐执行</button>`;
+  html+=`<button class="btn-go" onclick="executeRec('${topId}','${btoa(unescape(encodeURIComponent(fullText)))}')">▶ 用推荐执行</button>`;
   if(recipeIds){
-    html+=`<button class="btn-recipe" onclick="executeRecipe('${recipeIds.join(',')}','${btoa(unescape(encodeURIComponent(text)))}',this)">📦 用组合配方</button>`;
+    html+=`<button class="btn-recipe" onclick="executeRecipe('${recipeIds.join(',')}','${btoa(unescape(encodeURIComponent(fullText)))}',this)">📦 用组合配方</button>`;
   }
-  html+=`<button class="btn-swap" onclick="retryRec('${btoa(unescape(encodeURIComponent(text)))}',this)">🔄 换一批推荐</button>`;
+  html+=`<button class="btn-swap" onclick="retryRec('${btoa(unescape(encodeURIComponent(fullText)))}',this)">🔄 换一批推荐</button>`;
   html+='</div>';
 
   b.innerHTML=html;
@@ -354,12 +468,13 @@ async function send(){
 async function executeRec(tid,encodedText){
   const text=decodeURIComponent(escape(atob(encodedText)));
   document.querySelectorAll('.rec-actions button').forEach(b=>b.disabled=true);
-
-  // 显示技法标签
-  const card=document.querySelector(`.rec-card .rc-id`);
-  const techName=document.querySelector('.rec-card.top .rc-name')?.textContent||'技法'+tid;
-  addMsg('sys','🔧 正在使用: <b>'+techName+'</b> ['+tid+'] 分析中...');
-
+  document.querySelectorAll('.s-item,.recipe-item').forEach(e=>e.classList.remove('on'));
+  const sideEl=document.querySelector('.s-item[data-id="'+tid+'"]');
+  if(sideEl)sideEl.classList.add('on');
+  const techName=sideEl?sideEl.textContent.trim():('技法'+tid);
+  currentTechLabel=techName;
+  addMsg('sys','🔧 正在使用: <b>'+techName+'</b> 分析中...');
+  document.getElementById('statusTag').innerHTML='🔧 '+techName;
   const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
   streaming=true;
   await streamToMsg('/api/agent/think',{message:text,techniqueId:tid,deepThink:!fastMode},aiMsg);
@@ -371,8 +486,9 @@ async function executeRecipe(ids,encodedText,btn){
   const text=decodeURIComponent(escape(atob(encodedText)));
   btn.textContent='执行中...';btn.disabled=true;
   const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
+  const recipeEl=document.querySelector('.recipe-item.on');
+  currentTechLabel='📦 '+(recipeEl?recipeEl.textContent.trim():'组合配方');
   streaming=true;
-  // 串联执行多条技法
   const tidList=ids.split(',');
   for(let i=0;i<tidList.length;i++){
     addMsg('sys',`📌 配方第${i+1}步: 技法${tidList[i]}`);
@@ -423,8 +539,17 @@ async function streamToMsg(url,body,aiMsg){
 }
 
 function finish(aiMsg){
-  const b=aiMsg.querySelector('.b');if(!b?.textContent?.trim())b.innerHTML='[空]';b.querySelector('.typing')?.remove();
-  // 加导出按钮
+function finish(aiMsg){
+  const b=aiMsg.querySelector('.b');
+  if(currentTechLabel){
+    const badge=document.createElement('div');
+    const isRecipe=currentTechLabel.startsWith('📦');
+    badge.className='tech-badge '+(isRecipe?'recipe':'method');
+    badge.textContent=(isRecipe?'📦 配方: ':'🔧 技法: ')+currentTechLabel;
+    b.insertBefore(badge,b.firstChild);
+    currentTechLabel='';
+  }
+  if(!b?.textContent?.trim())b.innerHTML='[空]';b.querySelector('.typing')?.remove();
   addExportBtn(aiMsg,b);
   streaming=false;document.getElementById('sendBtn').disabled=false;document.getElementById('userInput').focus();
 }
