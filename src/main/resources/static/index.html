@@ -23,6 +23,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .sidebar-list::-webkit-scrollbar-thumb{background:var(--border)}
 .cat{font-size:9px;color:var(--text2);letter-spacing:1.5px;padding:10px 0 3px 4px;font-weight:700;border-top:1px solid var(--border);margin-top:6px}
 .cat:first-child{border-top:none;margin-top:0}
+/* 可折叠分类 */
+.cat-toggle{cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px}
+.cat-toggle::before{content:'▾';font-size:8px;transition:transform .2s}
+.cat-group.folded .cat-toggle::before{transform:rotate(-90deg)}
+.cat-group.folded .cat-body{display:none}
+.cat-body{padding:0}
 .s-item{display:flex;align-items:center;gap:6px;padding:6px 8px;margin:1px 0;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);transition:all .12s}
 .s-item:hover{background:#1e1e38;color:var(--text)}
 .s-item.on{background:rgba(124,92,252,.18);color:var(--accent2);font-weight:500}
@@ -211,7 +217,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 <script>
 let mode='auto', fastMode=false, streaming=false;
 
-// 56技法在后台静默运行，客户看不到技法编号和数量
+// 加载技法列表——按分类展示，不显示数量
+fetch('/api/techniques').then(r=>r.json()).then(techs=>{
+  const list=document.getElementById('techList');
+  let currentCat='';
+  let catGroup=null;
+  techs.forEach(t=>{
+    if(t.category!==currentCat){
+      currentCat=t.category;
+      // 分类标题（可折叠）
+      catGroup=document.createElement('div');
+      catGroup.className='cat-group';
+      const catHd=document.createElement('div');
+      catHd.className='cat cat-toggle';
+      catHd.textContent=currentCat;
+      catHd.onclick=function(){this.parentElement.classList.toggle('folded')};
+      catGroup.appendChild(catHd);
+      const catBody=document.createElement('div');
+      catBody.className='cat-body';
+      catGroup.appendChild(catBody);
+      list.appendChild(catGroup);
+    }
+    const el=document.createElement('div');
+    el.className='s-item';
+    el.dataset.id=t.id;
+    el.title=t.description;
+    el.textContent=t.name;
+    el.onclick=()=>{setMode(t.id,t.name,el);closeSidebar()};
+    if(catGroup) catGroup.querySelector('.cat-body').appendChild(el);
+  });
+});
 
 function setMode(id,label,el){mode=id;document.querySelectorAll('.s-item,.recipe-item').forEach(e=>e.classList.remove('on'));if(el)el.classList.add('on')}
 function toggleFast(){fastMode=!fastMode;const b=document.getElementById('fastBtn');b.classList.toggle('on',fastMode);b.textContent=fastMode?'⚡ 快速开':'⚡ 快速';document.getElementById('statusTag').textContent=fastMode?'⚡ 快速模式':'🧠 深度思考'}
