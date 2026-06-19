@@ -520,7 +520,7 @@ async function send(){
     finish(aiMsg);return;
   }
 
-  // === 透明推荐流程 ===
+  // ═══════════ v3.0: 透明推荐流程（置信度路由+意图显示+智能追问）═══════════
   let recData;
   try{
     if(retryCount>0){
@@ -538,43 +538,76 @@ async function send(){
     }
   }catch(e){recData=null;retryCount=0;}
 
+  // 方法3: 置信度路由 — topConfidence>=90 自动执行
+  var topConfidence=recData&&recData.cards&&recData.cards.length>0?recData.cards[0].confidence:0;
+  var topId=recData&&recData.cards&&recData.cards.length>0?recData.cards[0].id:'003';
+  var topName=recData&&recData.cards&&recData.cards.length>0?recData.cards[0].name:'';
+
+  if(topConfidence>=90){
+    addMsg('sys','🎯 高置信度匹配('+topConfidence+'%)，自动执行<b>'+topName+'</b>');
+    document.querySelectorAll('.s-item,.recipe-item').forEach(function(e){e.classList.remove('on')});
+    var sideEl=document.querySelector('.s-item[data-id="'+topId+'"]');
+    if(sideEl)sideEl.classList.add('on');
+    currentTechLabel=topName;
+    document.getElementById('statusTag').innerHTML='🔧 '+topName;
+    var aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
+    streaming=true;abortController=new AbortController();showStopBtn();
+    await streamWithRetry('/api/agent/think',{message:fullText,techniqueId:topId,deepThink:!fastMode},aiMsg);
+    finish(aiMsg);return;
+  }
+
+  // 80-89%/50-79%/<50%: 展示卡片
+  var confLevel=topConfidence>=80?'high':(topConfidence>=50?'mid':'low');
   const recMsg=addMsg('recommend','');
   const b=recMsg.querySelector('.b');
   let html='';
 
-  if(recData&&recData.keywords&&recData.keywords.length){
-    html+='<div class="rec-keywords">'+recData.keywords.map(k=>`<span>${k}</span>`).join('')+'</div>';
+  // 意图标签(方法1)
+  if(recData&&recData.intent){
+    html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">';
+    html+='<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(91,141,239,.15);color:var(--accent2)">🎯 '+recData.intent.label+'</span>';
+    if(recData.complexity)html+='<span style="font-size:10px;color:var(--text2)">'+recData.complexity.label+' · '+recData.complexity.recommendCount+'条</span>';
+    html+='</div>';
   }
 
-  html+=recData&&recData.explanation?`<div style="font-size:12px;color:var(--text2);margin-bottom:4px">${recData.explanation}</div>`:'';
-  if(recData&&recData.complexity){
-    html+=`<div style="font-size:10px;color:var(--text2);margin-bottom:10px">📊 复杂度: <b style="color:var(--accent2)">${recData.complexity.label}</b> · 推荐${recData.complexity.recommendCount}条 · ⚡纯本地引擎(0 token, 毫秒级)</div>`;
+  if(recData&&recData.keywords&&recData.keywords.length){
+    html+='<div class="rec-keywords">'+recData.keywords.map(k=>'<span>'+k+'</span>').join('')+'</div>';
   }
+
+  html+=recData&&recData.explanation?'<div style="font-size:12px;color:var(--text2);margin-bottom:4px">'+recData.explanation+'</div>':'';
+  if(recData&&recData.complexity){
+    html+='<div style="font-size:10px;color:var(--text2);margin-bottom:10px">📊 复杂度: <b style="color:var(--accent2)">'+recData.complexity.label+'</b> · 推荐'+recData.complexity.recommendCount+'条 · ⚡纯本地引擎</div>';
+  }
+
+  if(confLevel==='high'){
+    html+='<div style="font-size:11px;color:var(--accent3);margin-bottom:6px;padding:4px 10px;background:rgba(78,203,113,.08);border-radius:6px">⚡ 高置信度('+topConfidence+'%) — 点击卡片直接执行</div>';
+  }else if(confLevel==='low'){
+    html+='<div style="font-size:11px;color:var(--warn);margin-bottom:6px;padding:4px 10px;background:rgba(240,160,80,.08);border-radius:6px">🤔 低置信度('+topConfidence+'%) — 可点"AI深度推荐"让AI帮你选</div>';
+  }
+
   html+='<div class="rec-cards">';
 
   if(recData&&recData.cards){
-    recData.cards.forEach((c,i)=>{
-      const top=i===0?' top':'';
-      html+=`<div class="rec-card${top}" onclick="executeRec('${c.id}','${btoa(unescape(encodeURIComponent(fullText)))}')" title="点击直接执行此技法">
-        <div class="rc-hd"><span class="rc-id">${c.id}</span><span class="rc-name">${c.name}</span><span class="rc-pct">${c.confidence}%</span></div>
-        <div class="rc-desc">${c.description||''}</div>
-        <div class="rc-reason">💡 ${c.reason||''}</div>
-      </div>`;
+    recData.cards.forEach(function(c,i){
+      var top=i===0?' top':'';
+      html+='<div class="rec-card'+top+'" onclick="executeRec(\''+c.id+'\',\''+btoa(unescape(encodeURIComponent(fullText)))+'\')" title="点击直接执行此技法"><div class="rc-hd"><span class="rc-id">'+c.id+'</span><span class="rc-name">'+c.name+'</span><span class="rc-pct">'+c.confidence+'%</span></div><div class="rc-desc">'+(c.description||'')+'</div><div class="rc-reason">💡 '+(c.reason||'')+'</div></div>';
     });
   }else{
     html+='<div style="font-size:11px;color:var(--text2)">（本地匹配未命中，将用AI自动选择）</div>';
   }
   html+='</div>';
 
-  const topId=recData&&recData.cards&&recData.cards.length>0?recData.cards[0].id:'003';
   const recipeIds=recData&&recData.recipe?recData.recipe.techniqueIds:null;
 
   html+='<div class="rec-actions">';
   if(recipeIds){
-    html+=`<button class="btn-recipe" onclick="executeRecipe('${recipeIds.join(',')}','${btoa(unescape(encodeURIComponent(fullText)))}',this)">📦 用组合配方</button>`;
+    html+='<button class="btn-recipe" onclick="executeRecipe(\''+recipeIds.join(',')+'\',\''+btoa(unescape(encodeURIComponent(fullText)))+'\',this)">📦 用组合配方</button>';
   }
-  html+=`<button class="btn-go" onclick="executeRec('${topId}','${btoa(unescape(encodeURIComponent(fullText)))}')">▶ 用推荐执行</button>`;
-  html+=`<button class="btn-swap" onclick="retryRec('${btoa(unescape(encodeURIComponent(fullText)))}',this)">🔄 换一批</button>`;
+  html+='<button class="btn-go" onclick="executeRec(\''+topId+'\',\''+btoa(unescape(encodeURIComponent(fullText)))+'\')">▶ 用推荐执行</button>';
+  if(confLevel==='low'){
+    html+='<button class="btn-swap" onclick="deepRec(\''+btoa(unescape(encodeURIComponent(fullText)))+'\',this)" style="border-color:var(--warn);color:var(--warn)">🧠 AI深度推荐</button>';
+  }
+  html+='<button class="btn-swap" onclick="retryRec(\''+btoa(unescape(encodeURIComponent(fullText)))+'\',this)">🔄 换一批</button>';
   html+='</div>';
 
   b.innerHTML=html;
@@ -632,6 +665,20 @@ async function retryRec(encodedText,btn){
   document.getElementById('userInput').value=decodeURIComponent(escape(atob(encodedText)));
   send();}
 
+// v3.0 方法3: AI深度推荐（低置信度时触发）
+async function deepRec(encodedText,btn){
+  btn.textContent='AI分析中...';btn.disabled=true;
+  try{
+    var text=decodeURIComponent(escape(atob(encodedText)));
+    var r=await fetch('/api/recommend/deep',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});
+    var d=await r.json();
+    addMsg('sys','🧠 <b>AI深度分析:</b> '+d.recommendation);
+  }catch(e){
+    addMsg('sys','<span style="color:#f05050">AI深度推荐失败</span>');
+  }
+  btn.textContent='🧠 AI深度推荐';btn.disabled=false;
+}
+
 // ====== 流式响应处理 ======
 async function streamToMsg(url,body,aiMsg){
   const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:abortController?abortController.signal:null});
@@ -682,11 +729,38 @@ function finish(aiMsg){
   if(hasContent){
     addExportBtn(aiMsg,b);
     addFeedbackBtns(b);
-    if(!fastMode)maybeAskFollowup(b);
+    if(!fastMode)smartFollowup(b); // v3.0 方法7: 智能追问替代随机追问
   }
   streaming=false;abortController=null;
   document.getElementById('sendBtn').disabled=false;hideStopBtn();
   document.getElementById('userInput').focus();
+}
+
+// v3.0 方法7: 智能追问 — 调后端 FollowupService
+async function smartFollowup(bubble){
+  var content=bubble.textContent.trim();
+  if(!content||content.length<50)return;
+  try{
+    var input=document.getElementById('userInput');
+    var lastUserMsg='';
+    var msgs=document.getElementById('chat').querySelectorAll('.msg.user .b');
+    if(msgs.length)lastUserMsg=msgs[msgs.length-1].textContent.trim();
+    var r=await fetch('/api/agent/followup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:lastUserMsg||'',response:content.substring(0,500)})});
+    var d=await r.json();
+    if(!d.questions||!d.questions.length)return;
+    var div=document.createElement('div');
+    div.style.cssText='margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(124,92,252,.06);border:1px dashed rgba(124,92,252,.2);font-size:11px;color:var(--text2)';
+    div.innerHTML='<span style="font-size:10px;color:var(--accent)">💡 '+(d.fromModel?'AI建议':'推荐')+'下一步:</span> ';
+    d.questions.forEach(function(q,i){
+      var btn=document.createElement('button');
+      btn.textContent=(i+1)+'. '+q.action;
+      btn.title=q.text;
+      btn.style.cssText='margin:2px 4px;padding:3px 10px;border-radius:12px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:10px;cursor:pointer;white-space:nowrap';
+      btn.onclick=function(){document.getElementById('userInput').value=q.text;document.getElementById('userInput').focus();autoResize(document.getElementById('userInput'))};
+      div.appendChild(btn);
+    });
+    bubble.appendChild(div);
+  }catch(e){/* 追问失败静默 */}
 }
 
 // ====== 导出按钮 ======
