@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>文件上传测试</title></head>
+<body>
+<h2>文件上传测试</h2>
+<button onclick="document.getElementById('f1').click()">📁 选择文件</button>
+<button onclick="document.getElementById('f2').click()">📂 选择文件夹</button>
+<input type="file" id="f1" multiple onchange="show(this)" style="display:none">
+<input type="file" id="f2" webkitdirectory multiple onchange="show(this)" style="display:none">
+<div id="result"></div>
+<script>
+function show(input){
+  var names=Array.from(input.files).map(f=>f.name).join(', ');
+  document.getElementById('result').innerHTML='✅ 已选择: '+names+' ('+input.files.length+'个)';
+}
+</script>
+</body>
+</html>

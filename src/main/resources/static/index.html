@@ -34,6 +34,7 @@ body{font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'PingFang SC','M
 .s-item{display:flex;align-items:center;gap:6px;padding:6px 8px;margin:1px 0;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);transition:all .12s}
 .s-item:hover{background:#1e1e38;color:var(--text)}
 .s-item.on{background:rgba(124,92,252,.18);color:var(--accent2);font-weight:500}
+.s-item.queued{background:rgba(240,160,80,.15);border:1px solid rgba(240,160,80,.3)}
 .s-item .n{font-size:9px;background:#1e1e38;padding:1px 5px;border-radius:3px;flex-shrink:0}
 .s-item.on .n{background:var(--accent);color:#fff}
 .recipe-item{display:block;padding:6px 8px;margin:1px 0;border-radius:6px;cursor:pointer;font-size:11.5px;color:var(--text2);transition:all .12s}
@@ -80,19 +81,23 @@ body{font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'PingFang SC','M
 .msg.recommend .b::before{content:"🧠 分析你的问题...";display:block;font-size:10px;color:var(--accent);margin-bottom:8px;font-weight:600;letter-spacing:1px}
 .rec-keywords{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
 .rec-keywords span{font-size:9px;padding:2px 6px;border-radius:10px;background:rgba(124,92,252,.15);color:var(--accent2)}
-.rec-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
-@media(max-width:900px){.rec-cards{grid-template-columns:repeat(2,1fr)}}
+.rec-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
 @media(max-width:600px){.rec-cards{grid-template-columns:1fr}}
-.rec-card{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:#1e1e38;border:1px solid var(--border);font-size:12px;cursor:default;transition:all .15s}
-.rec-card:hover{border-color:var(--accent)}
+.rec-card{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:10px;background:#1e1e38;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .15s}
+.rec-card:hover{border-color:var(--accent);background:#222244}
+.rec-card .rc-hd{display:flex;align-items:center;gap:6px}
 .rec-card .rc-id{font-size:10px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:4px;font-weight:600;flex-shrink:0}
 .rec-card .rc-info{flex:1;min-width:0}
-.rec-card .rc-name{font-weight:600;font-size:12px}
-.rec-card .rc-reason{font-size:10px;color:var(--text2);margin-top:1px}
-.rec-card .rc-pct{font-size:13px;font-weight:700;color:var(--accent2);flex-shrink:0;margin-left:8px}
+.rec-card .rc-name{font-weight:600;font-size:13px}
+.rec-card .rc-desc{font-size:10px;color:var(--text2);line-height:1.5;margin-top:2px}
+.rec-card .rc-reason{font-size:9px;color:var(--accent2);margin-top:1px;font-style:italic}
+.rec-card .rc-pct{font-size:12px;font-weight:700;color:var(--accent2);flex-shrink:0}
 .rec-card.top{border-color:rgba(240,160,80,.3);background:rgba(240,160,80,.05)}
 .rec-card.top .rc-id{background:var(--warn)}
 .rec-card.top .rc-pct{color:var(--warn)}
+/* 批量进度条 */
+.batch-progress{width:100%;height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+.batch-progress .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .5s}
 .rec-actions{display:flex;gap:6px}
 .rec-actions button{padding:6px 14px;border-radius:8px;font-size:11px;cursor:pointer;font-weight:600;border:none}
 .btn-go{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
@@ -134,12 +139,13 @@ body{font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'PingFang SC','M
 
 .input-zone{flex-shrink:0;padding:10px 16px 14px;background:var(--surface);border-top:1px solid var(--border)}
 .input-tools{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
-/* 文件选择按钮 */
-.fbtn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+/* 文件按钮 */
+.fbtn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;transition:all .15s}
 .fbtn:hover{border-color:var(--accent);color:var(--text)}
 .fbtn.file{border-color:rgba(124,92,252,.3);color:var(--accent)}
 .fbtn.folder{border-color:rgba(91,141,239,.3);color:var(--accent2)}
-.fbtn .icon{font-size:13px}.fbtn input[type=file]{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.fbtn .icon{font-size:13px}
+.fbtn input[type=file]{display:none}
 
 .input-row{display:flex;gap:8px;align-items:flex-end}
 .input-row textarea{flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#1e1e38;color:var(--text);font-size:14px;font-family:inherit;line-height:1.5;resize:none;outline:none;min-height:44px;max-height:150px}
@@ -187,7 +193,8 @@ body{font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'PingFang SC','M
   <div class="sidebar-list">
     <div class="cat">对话模式</div>
     <div class="recipe-item" data-id="" onclick="setMode('','自由对话',this)">💬 自由对话</div>
-    <div class="recipe-item on" data-id="auto" onclick="setMode('auto','智能推荐',this)">🤖 智能推荐</div>
+    <div class="recipe-item" data-id="auto" onclick="setMode('auto','智能推荐',this)">🤖 智能推荐</div>
+    <div class="recipe-item on" data-id="consulting" onclick="setMode('consulting','🏛️ 咨询式分析',this)" style="border:1px dashed rgba(240,160,80,.3);margin-top:4px">🏛️ 咨询式分析</div>
     <div class="cat">配方套餐</div>
     <div class="recipe-item" data-id="recipe:创业验证套餐" onclick="setMode('recipe:创业验证套餐','创业验证',this)">📦 创业验证</div>
     <div class="recipe-item" data-id="recipe:内容创作套餐" onclick="setMode('recipe:内容创作套餐','内容创作',this)">📦 内容创作</div>
@@ -227,30 +234,44 @@ body{font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'PingFang SC','M
 
   <div class="input-zone">
     <div class="input-tools">
-      <label class="fbtn file" title="选择多个文件，每个≤5MB，最多10个">
+      <label class="fbtn file">
         <span class="icon">📁</span> 选择文件
-        <input id="fileInput" type="file" multiple accept=".md,.txt,.csv,.json,.xml,.yml,.yaml,.html,.log,.java,.py,.js,.ts,.css,.pdf" onchange="handleFiles(this.files)">
+        <input type="file" multiple accept=".md,.txt,.csv,.json,.xml,.yml,.yaml,.html,.log,.java,.py,.js,.ts,.css,.pdf" onchange="handleFiles(this.files)" style="display:none">
       </label>
-      <label class="fbtn folder" title="选择文件夹，读取其中所有文本文件">
+      <label class="fbtn folder">
         <span class="icon">📂</span> 选择文件夹
-        <input id="folderInput" type="file" webkitdirectory directory multiple onchange="handleFiles(this.files)">
+        <input type="file" webkitdirectory directory multiple onchange="handleFiles(this.files)" style="display:none">
       </label>
+      <button class="fbtn" onclick="smartPreAnalyze()" style="border-color:rgba(78,203,113,.4);color:var(--accent3)" title="分析内容复杂度，自动推荐N个技法">
+        <span>🔬</span> 智能预分析
+      </button>
+      <span id="intakeResult" style="font-size:10px;color:var(--text2)"></span>
     </div>
     <div class="file-tags" id="fileTags"></div>
+    <div id="batchBar" style="display:none;padding:6px 10px;background:rgba(240,160,80,.06);border:1px solid rgba(240,160,80,.2);border-radius:8px;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--warn);font-weight:600;white-space:nowrap">📋 队列:</span>
+        <span id="batchTags" style="display:flex;gap:4px;flex-wrap:wrap;flex:1"></span>
+        <button id="batchGoBtn" onclick="executeBatch()" style="padding:5px 14px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--warn),#e08030);color:#000;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">▶ 全部执行</button>
+        <button onclick="clearQueue()" style="padding:4px 10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:10px;cursor:pointer">✕</button>
+      </div>
+      <div id="batchProgressBar" class="batch-progress" style="display:none"><div class="fill" style="width:0%"></div></div>
+    </div>
     <div class="input-row">
       <textarea id="userInput" rows="1" placeholder="输入问题… Shift+Enter 换行  Enter 发送"
         onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button class="btn-send" id="sendBtn" onclick="send()">发送</button>
+      <button class="btn-send" id="stopBtn" onclick="stopGeneration()" style="display:none;background:#f05050">⏹ 停止</button>
     </div>
-    <div class="hint"><span>Enter 发送</span><span>Shift+Enter 换行</span><span>📁 最多10个文件</span><span>先看推荐再执行</span></div>
+    <div class="hint"><span>Enter 发送</span><span>Shift+Enter 换行</span><span>📁 可选文件</span><span>＋加入队列</span></div>
   </div>
 </main>
 
 <script>
 let mode='auto', fastMode=false, streaming=false, currentTechLabel='', retryCount=0;
+let abortController=null, inputHistoryPos=-1, inputHistoryArr=[], _initDone=false;
 
 // 加载技法列表——按分类展示，不显示数量
-// 四大分类的描述说明
 const CAT_DESC={
   '快速产生灵感':'没有思路时从这里开始——用AI独特能力、自由联想、逻辑推理快速产生新点子',
   '打磨完善创意':'已经有了初步想法？让AI帮你筛选、深化、具体化、验证',
@@ -289,37 +310,28 @@ const CAT_CHAPTERS={
 fetch('/api/techniques').then(r=>r.json()).then(techs=>{
   const list=document.getElementById('techList');
   if(!list)return;
-  // 按分类组织
   const byId={};techs.forEach(t=>{byId[t.id]=t});
   const categories=['快速产生灵感','打磨完善创意','落地执行创意','找到思考切入点'];
   categories.forEach(cat=>{
     const catGroup=document.createElement('div');
     catGroup.className='cat-group';
-
-    // 分类标题（可折叠）
     const catHd=document.createElement('div');
     catHd.className='cat cat-toggle';
     catHd.innerHTML=(CAT_ICON[cat]||'')+' '+cat;
     catHd.onclick=function(){this.parentElement.classList.toggle('folded')};
     catGroup.appendChild(catHd);
-
-    // 分类描述
     const catDesc=document.createElement('div');
     catDesc.style.cssText='font-size:10px;color:var(--text2);padding:2px 4px 6px;line-height:1.5';
     catDesc.textContent=CAT_DESC[cat]||'';
     catGroup.appendChild(catDesc);
-
     const catBody=document.createElement('div');
     catBody.className='cat-body';
-
-    // 子分类（章）
     const chapters=CAT_CHAPTERS[cat]||[];
     chapters.forEach(ch=>{
       const chHd=document.createElement('div');
       chHd.style.cssText='font-size:10px;color:var(--accent2);padding:4px 4px 2px;font-weight:600;letter-spacing:.5px';
       chHd.textContent='▸ '+ch.name;
       catBody.appendChild(chHd);
-
       ch.ids.forEach(id=>{
         const t=byId[id];
         if(!t)return;
@@ -327,12 +339,12 @@ fetch('/api/techniques').then(r=>r.json()).then(techs=>{
         el.className='s-item';
         el.dataset.id=t.id;
         el.title=t.description;
-        el.innerHTML='<span class="n">'+t.id+'</span> '+t.name;
+        el.innerHTML='<span class="n" style="cursor:pointer" title="＋加入批量队列">＋</span> '+t.name+' <span style="font-size:9px;color:var(--text2);margin-left:auto">'+t.id+'</span>';
+        el.querySelector('.n').onclick=function(e){e.stopPropagation();toggleBatchQueue(t.id,t.name)};
         el.onclick=()=>{setMode(t.id,t.name,el);closeSidebar()};
         catBody.appendChild(el);
       });
     });
-
     catGroup.appendChild(catBody);
     list.appendChild(catGroup);
   });
@@ -342,26 +354,20 @@ fetch('/api/techniques').then(r=>r.json()).then(techs=>{
 fetch('/api/techniques').then(r=>r.json()).then(techs=>{
   const tipsList=document.getElementById('tipsList');
   if(!tipsList)return;
-  // 筛选出 TIPS 开头的技法
   const tips=techs.filter(t=>t.id&&t.id.startsWith('TIPS-'));
   if(!tips.length){tipsList.innerHTML='<div style="font-size:10px;color:var(--text2);padding:6px">加载中...</div>';return}
-
-  // 按分类组织
   const tipsCats=['AI独学-超具体化','AI独学-输出深化','AI独学-机制化'];
   tipsCats.forEach(cat=>{
     const catTips=tips.filter(t=>t.category===cat);
     if(!catTips.length)return;
     const shortName=cat.replace('AI独学-','');
-
     const catGroup=document.createElement('div');
-    catGroup.className='cat-group folded'; // 默认折叠
-
+    catGroup.className='cat-group folded';
     const catHd=document.createElement('div');
     catHd.className='cat cat-toggle';
     catHd.innerHTML='📘 '+shortName+' <span style="font-weight:400;font-size:9px;color:var(--text2)">'+catTips.length+'个</span>';
     catHd.onclick=function(){this.parentElement.classList.toggle('folded')};
     catGroup.appendChild(catHd);
-
     const catBody=document.createElement('div');
     catBody.className='cat-body';
     catTips.forEach(t=>{
@@ -369,7 +375,8 @@ fetch('/api/techniques').then(r=>r.json()).then(techs=>{
       el.className='s-item';
       el.dataset.id=t.id;
       el.title=t.description||'';
-      el.innerHTML='<span class="n" style="background:#1e3a5c;font-size:8px">'+t.id+'</span> '+t.name;
+      el.innerHTML='<span class="n" style="background:#1e3a5c;font-size:8px;cursor:pointer" title="＋加入批量队列">＋</span> '+t.name+' <span style="font-size:9px;color:var(--text2);margin-left:auto">'+t.id+'</span>';
+      el.querySelector('.n').onclick=function(e){e.stopPropagation();toggleBatchQueue(t.id,t.name)};
       el.onclick=()=>{setMode(t.id,t.name,el);closeSidebar()};
       catBody.appendChild(el);
     });
@@ -379,7 +386,6 @@ fetch('/api/techniques').then(r=>r.json()).then(techs=>{
 });
 
 function setMode(id,label,el){mode=id;document.querySelectorAll('.s-item,.recipe-item').forEach(e=>e.classList.remove('on'));if(el)el.classList.add('on');
-  // 更新顶部状态标签
   const tag=document.getElementById('statusTag');
   if(fastMode)tag.innerHTML='⚡ 快速模式';
   else if(id==='')tag.innerHTML='💬 自由对话';
@@ -387,7 +393,6 @@ function setMode(id,label,el){mode=id;document.querySelectorAll('.s-item,.recipe
   else if(id&&id.startsWith('recipe:'))tag.innerHTML='📦 '+label;
   else if(id&&id.startsWith('TIPS-'))tag.innerHTML='📘 独学TIPS '+id;
   else if(id)tag.innerHTML='🔧 技法 '+id+' · '+label;
-  // 聊天区显示当前模式
   const old=document.getElementById('modeNotice');if(old)old.remove();
   if(id&&id!=='auto'){const n=document.createElement('div');n.id='modeNotice';n.style.cssText='text-align:center;padding:6px;margin:4px 0;font-size:11px;color:var(--accent2);background:rgba(124,92,252,.08);border-radius:8px';n.innerHTML='✅ 当前模式: <b>'+label+'</b> ['+id+'] — 输入问题后直接执行';document.getElementById('chat').appendChild(n);scrollDown()}
   }
@@ -402,7 +407,6 @@ function openSidebar(){
   if(window.innerWidth<=768){
     sb.classList.add('open');ov.classList.add('show');
   } else {
-    // 桌面端：切换侧边栏显示/隐藏
     sb.classList.toggle('hidden');
     ov.classList.toggle('show',sb.classList.contains('hidden'));
   }
@@ -416,31 +420,32 @@ function closeSidebar(){
 
 // ====== 文件处理 ======
 const MAX_FILE_SIZE=5*1024*1024, MAX_FILE_COUNT=10, MAX_CHARS=80000;
-let pendingFiles=[]; // {name,size,file}
+let pendingFiles=[];
 function showToast(m,e){const t=document.createElement('div');t.className='file-toast';t.textContent=m;if(e)t.style.color='#f0a050';document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
 
 function handleFiles(fileList){
   if(!fileList||fileList.length===0)return;
   const files=Array.from(fileList);
   const big=files.filter(f=>f.size>MAX_FILE_SIZE);
-  if(big.length)showToast(`⚠️ ${big.length}个文件超5MB已跳过`,true);
+  if(big.length)showToast('⚠️ '+big.length+'个文件超5MB已跳过',true);
   const valid=files.filter(f=>f.size<=MAX_FILE_SIZE);
   if(!valid.length)return;
   const slots=MAX_FILE_COUNT-pendingFiles.length;
-  if(slots<=0){showToast(`⚠️ 最多${MAX_FILE_COUNT}个文件`,true);return}
-  if(valid.length>slots){showToast(`⚠️ 最多${MAX_FILE_COUNT}个，只保留前${slots}个`,true);valid.splice(slots)}
+  if(slots<=0){showToast('⚠️ 最多'+MAX_FILE_COUNT+'个文件',true);return}
+  if(valid.length>slots){showToast('⚠️ 最多'+MAX_FILE_COUNT+'个，只保留前'+slots+'个',true);valid.splice(slots)}
   valid.forEach(f=>pendingFiles.push({name:f.name,size:f.size,file:f}));
-  renderFileTags();
-  const fi=document.getElementById('fileInput');if(fi)fi.value='';const fo=document.getElementById('folderInput');if(fo)fo.value='';
+  renderFileTags();updateSendBtn();
 }
 
 function renderFileTags(){
   const c=document.getElementById('fileTags');if(!c)return;
-  c.innerHTML=pendingFiles.map((f,i)=>'<span class="file-tag"><span class="ft-name" title="'+f.name+'">📄 '+f.name+'</span><span class="ft-size">'+(f.size/1024).toFixed(1)+'KB</span><button class="ft-del" onclick="removeFile('+i+')" title="移除">✕</button></span>').join('');
+  c.innerHTML=pendingFiles.map((f,i)=>
+    '<span class="file-tag"><span class="ft-name" title="'+f.name+'">📄 '+f.name+'</span><span class="ft-size">'+(f.size/1024).toFixed(1)+'KB</span><button class="ft-del" onclick="removeFile('+i+')" title="移除">✕</button></span>'
+  ).join('');
   c.style.display=pendingFiles.length?'flex':'none';
 }
 
-function removeFile(i){pendingFiles.splice(i,1);renderFileTags()}
+function removeFile(i){pendingFiles.splice(i,1);renderFileTags();updateSendBtn()}
 
 async function readFilesContent(files){
   let all='';
@@ -448,24 +453,24 @@ async function readFilesContent(files){
   return all;
 }
 
-// ====== 发送消息（文件+文字+技法统一发送） ======
+// ====== 发送消息 ======
 async function send(){
   const input=document.getElementById('userInput'), text=input.value.trim();
   if((!text&&!pendingFiles.length)||streaming)return;
+  if(handleQuickCmd(text)){input.value='';input.style.height='auto';pushInput(text);return;}
   const chat=document.getElementById('chat');const w=chat.querySelector('.welcome');if(w)w.remove();
 
-  // 读取待发送文件内容
   let fileContent='';let filesSnapshot=[];
   if(pendingFiles.length){
     filesSnapshot=[...pendingFiles];
-    pendingFiles=[];renderFileTags();
+    pendingFiles=[];renderFileTags();updateSendBtn();
     fileContent=await readFilesContent(filesSnapshot);
   }
 
   input.value='';input.style.height='auto';streaming=true;
-  document.getElementById('sendBtn').disabled=true;
+  pushInput(text);abortController=new AbortController();
+  document.getElementById('sendBtn').disabled=true;showStopBtn();
 
-  // 构建用户消息显示
   let displayText=text||'(文件分析)';
   if(filesSnapshot.length){
     const names=filesSnapshot.length<=3?filesSnapshot.map(f=>f.name).join(', '):filesSnapshot.length+' 个文件';
@@ -473,18 +478,37 @@ async function send(){
   }
   addMsg('user',displayText);
 
-  // 构建完整prompt（文字 + 文件内容）
   let fullText=text||'请分析以下文件内容';
   if(fileContent)fullText='以下是我上传的文件内容:\n'+fileContent+'\n---\n请根据以上文件内容，回答:\n'+fullText;
 
-  // 如果是手动选技法或配方，跳过推荐
-  if(mode&&mode!=='auto'&&!mode.startsWith('recipe:')){
+  // ====== 咨询模式 ======
+  if(mode==='consulting'){
+    addMsg('sys','🏛️ <b>咨询式分析</b> — 全景快扫中...');
+    const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
+    streaming=true;abortController=new AbortController();showStopBtn();
+    try{
+      await streamToMsg('/api/agent/consulting/scan',{message:fullText,deepThink:false},aiMsg);
+      var bubble=aiMsg.querySelector('.b');
+      if(bubble){
+        var encodedQ=btoa(unescape(encodeURIComponent(fullText)));
+        bubble.innerHTML=bubble.innerHTML.replace(/<h3>维度(\d+)[：:]([^<]+)<\/h3>/gi,function(m,num,dimName){
+          var dim=dimName.replace(/<[^>]+>/g,'').trim();
+          var encodedDim=btoa(unescape(encodeURIComponent(dim)));
+          return '<div style="display:flex;align-items:center;gap:8px;margin:10px 0 4px"><b style="flex:1;font-size:14px;color:var(--accent2)">维度'+num+': '+dim+'</b><button onclick="consultingDeepDive(\''+encodedQ+'\',\''+encodedDim+'\',this)" style="padding:4px 12px;border-radius:12px;border:1px solid var(--warn);background:rgba(240,160,80,.1);color:var(--warn);font-size:11px;cursor:pointer;white-space:nowrap;font-weight:600">🔍 深挖</button></div>';
+        });
+      }
+    }catch(e){if(!aiMsg.querySelector('.b')?.textContent?.trim())aiMsg.querySelector('.b').innerHTML='<span style="color:#f05050">❌ 咨询分析失败: '+(e.message||'未知错误')+'</span>'}
+    finish(aiMsg);return;
+  }
+
+  // 手动选技法或配方
+  if(mode&&mode!=='auto'&&mode!=='consulting'&&!mode.startsWith('recipe:')){
     const sideEl=document.querySelector('.s-item[data-id="'+mode+'"]');
     const techName=sideEl?sideEl.textContent.trim():('技法'+mode);
     currentTechLabel=techName;
     addMsg('sys','🔧 正在使用: <b>'+techName+'</b> 分析中...');
     const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
-    await streamToMsg('/api/agent/think',{message:fullText,techniqueId:mode,deepThink:!fastMode},aiMsg);
+    await streamWithRetry('/api/agent/think',{message:fullText,techniqueId:mode,deepThink:!fastMode},aiMsg);
     finish(aiMsg);return;
   }
   if(mode&&mode.startsWith('recipe:')){
@@ -492,21 +516,20 @@ async function send(){
     addMsg('sys','📦 正在使用配方: <b>'+label+'</b> 执行中...');
     currentTechLabel='📦 '+label;
     const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
-    await streamToMsg('/api/agent/think',{message:fullText,techniqueId:mode,deepThink:!fastMode},aiMsg);
+    await streamWithRetry('/api/agent/think',{message:fullText,techniqueId:mode,deepThink:!fastMode},aiMsg);
     finish(aiMsg);return;
   }
 
   // === 透明推荐流程 ===
   let recData;
   try{
-    // 换一批时：先LLM深度分析 + 再获取打乱后的推荐卡片
     if(retryCount>0){
       try{
         const dr=await fetch('/api/recommend/deep',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText})});
         const deepText=await dr.text();
         const r2=await fetch('/api/recommend/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText,shuffle:'true'})});
         recData=await r2.json();
-        recData.explanation=deepText; // LLM分析结果作为推荐理由
+        recData.explanation=deepText;
       }catch(e){recData=null;}
       retryCount=0;
     }else{
@@ -515,7 +538,6 @@ async function send(){
     }
   }catch(e){recData=null;retryCount=0;}
 
-  // 显示推荐卡片
   const recMsg=addMsg('recommend','');
   const b=recMsg.querySelector('.b');
   let html='';
@@ -524,13 +546,20 @@ async function send(){
     html+='<div class="rec-keywords">'+recData.keywords.map(k=>`<span>${k}</span>`).join('')+'</div>';
   }
 
-  html+=recData&&recData.explanation?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px">${recData.explanation}</div>`:'';
+  html+=recData&&recData.explanation?`<div style="font-size:12px;color:var(--text2);margin-bottom:4px">${recData.explanation}</div>`:'';
+  if(recData&&recData.complexity){
+    html+=`<div style="font-size:10px;color:var(--text2);margin-bottom:10px">📊 复杂度: <b style="color:var(--accent2)">${recData.complexity.label}</b> · 推荐${recData.complexity.recommendCount}条 · ⚡纯本地引擎(0 token, 毫秒级)</div>`;
+  }
   html+='<div class="rec-cards">';
 
   if(recData&&recData.cards){
     recData.cards.forEach((c,i)=>{
       const top=i===0?' top':'';
-      html+=`<div class="rec-card${top}"><span class="rc-id">${c.id}</span><div class="rc-info"><div class="rc-name">${c.name}</div><div class="rc-reason">${c.reason||''}</div></div><span class="rc-pct">${c.confidence}%</span></div>`;
+      html+=`<div class="rec-card${top}" onclick="executeRec('${c.id}','${btoa(unescape(encodeURIComponent(fullText)))}')" title="点击直接执行此技法">
+        <div class="rc-hd"><span class="rc-id">${c.id}</span><span class="rc-name">${c.name}</span><span class="rc-pct">${c.confidence}%</span></div>
+        <div class="rc-desc">${c.description||''}</div>
+        <div class="rc-reason">💡 ${c.reason||''}</div>
+      </div>`;
     });
   }else{
     html+='<div style="font-size:11px;color:var(--text2)">（本地匹配未命中，将用AI自动选择）</div>';
@@ -541,24 +570,20 @@ async function send(){
   const recipeIds=recData&&recData.recipe?recData.recipe.techniqueIds:null;
 
   html+='<div class="rec-actions">';
-  // 📦 组合配方优先
   if(recipeIds){
     html+=`<button class="btn-recipe" onclick="executeRecipe('${recipeIds.join(',')}','${btoa(unescape(encodeURIComponent(fullText)))}',this)">📦 用组合配方</button>`;
   }
-  // ▶ 单独技法其次
   html+=`<button class="btn-go" onclick="executeRec('${topId}','${btoa(unescape(encodeURIComponent(fullText)))}')">▶ 用推荐执行</button>`;
-  // 🔄 换一批(刷新所有技法+配方)
   html+=`<button class="btn-swap" onclick="retryRec('${btoa(unescape(encodeURIComponent(fullText)))}',this)">🔄 换一批</button>`;
   html+='</div>';
 
   b.innerHTML=html;
   scrollDown();
-  streaming=false;
-  document.getElementById('sendBtn').disabled=false;
+  streaming=false;abortController=null;
+  document.getElementById('sendBtn').disabled=false;hideStopBtn();
   document.getElementById('userInput').focus();
 }
 
-// 用户点击"用推荐执行"
 async function executeRec(tid,encodedText){
   const text=decodeURIComponent(escape(atob(encodedText)));
   document.querySelectorAll('.rec-actions button').forEach(b=>b.disabled=true);
@@ -570,38 +595,46 @@ async function executeRec(tid,encodedText){
   addMsg('sys','🔧 正在使用: <b>'+techName+'</b> 分析中...');
   document.getElementById('statusTag').innerHTML='🔧 '+techName;
   const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
-  streaming=true;
-  await streamToMsg('/api/agent/think',{message:text,techniqueId:tid,deepThink:!fastMode},aiMsg);
+  streaming=true;abortController=new AbortController();showStopBtn();
+  await streamWithRetry('/api/agent/think',{message:text,techniqueId:tid,deepThink:!fastMode},aiMsg);
   finish(aiMsg);
 }
 
-// 用户点击"用组合配方"
 async function executeRecipe(ids,encodedText,btn){
   const text=decodeURIComponent(escape(atob(encodedText)));
   btn.textContent='执行中...';btn.disabled=true;
   const aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
   const recipeEl=document.querySelector('.recipe-item.on');
   currentTechLabel='📦 '+(recipeEl?recipeEl.textContent.trim():'组合配方');
-  streaming=true;
+  streaming=true;abortController=new AbortController();showStopBtn();
   const tidList=ids.split(',');
+  aiMsg.remove();
   for(let i=0;i<tidList.length;i++){
-    addMsg('sys',`📌 配方第${i+1}步: 技法${tidList[i]}`);
-    await streamToMsg('/api/agent/think',{message:text,techniqueId:tidList[i].trim(),deepThink:!fastMode},aiMsg);
+    var tid=tidList[i].trim();
+    addMsg('sys',`📌 配方第${i+1}步: 技法${tid}`);
+    var stepBubble=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
+    try{
+      await streamWithRetry('/api/agent/think',{message:text,techniqueId:tid,deepThink:!fastMode},stepBubble);
+      finish(stepBubble);
+    }catch(e){
+      stepBubble.querySelector('.b').innerHTML='<span style="color:#f05050">✕ 步骤失败: '+(e.message||'')+'</span>';
+    }
   }
-  finish(aiMsg);
+  streaming=false;abortController=null;
+  document.getElementById('sendBtn').disabled=false;hideStopBtn();
+  document.getElementById('userInput').focus();
 }
 
-// 换一批推荐
 async function retryRec(encodedText,btn){
   btn.textContent='换一批中...';btn.disabled=true;
   const oldRec=document.querySelector('.msg.recommend');if(oldRec)oldRec.remove();
-  retryCount++; // 标记为重试，send()会用深度推荐获取不同结果
+  retryCount++;
   document.getElementById('userInput').value=decodeURIComponent(escape(atob(encodedText)));
   send();}
 
 // ====== 流式响应处理 ======
 async function streamToMsg(url,body,aiMsg){
-  const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:abortController?abortController.signal:null});
   const reader=resp.body.getReader();const dec=new TextDecoder();
   let buf='',raw='',reasonMsg=null,finalMsg=null;
 
@@ -615,19 +648,18 @@ async function streamToMsg(url,body,aiMsg){
 
         if(e.techniqueId==='deepthink-reasoning'){
           if(e.type==='STEP_START'){reasonMsg=addMsg('reason','');raw=''}
-          if(e.type==='STEP_CONTENT'&&reasonMsg){raw+=e.content||'';reasonMsg.querySelector('.b').innerHTML=marked.parse(raw)}
+          if(e.type==='STEP_CONTENT'&&reasonMsg){raw+=e.content||'';reasonMsg.querySelector('.b').innerHTML=safeMarkdown(raw)}
           continue;
         }
         if(e.techniqueId==='deepthink-final'){
           if(e.type==='STEP_START'){finalMsg=addMsg('ai final','');raw=''}
-          if(e.type==='STEP_CONTENT'&&finalMsg){raw+=e.content||'';finalMsg.querySelector('.b').innerHTML=marked.parse(raw)}
+          if(e.type==='STEP_CONTENT'&&finalMsg){raw+=e.content||'';finalMsg.querySelector('.b').innerHTML=safeMarkdown(raw)}
           continue;
         }
-        // 精炼阶段: 重置raw, 然后接收最终报告内容
         if(e.type==='STEP_START'&&e.stepNumber===99){raw='';aiMsg.classList.add('refined')}
-        else if(e.techniqueId==='refined'&&e.type==='STEP_CONTENT'&&e.content){raw+=e.content;aiMsg.querySelector('.b').innerHTML=marked.parse(raw)}
+        else if(e.techniqueId==='refined'&&e.type==='STEP_CONTENT'&&e.content){raw+=e.content;aiMsg.querySelector('.b').innerHTML=safeMarkdown(raw)}
         else if(e.type==='STEP_START'){addMsg('sys','📌 '+(e.stepName||''))}
-        else if(e.type==='STEP_CONTENT'&&e.content){raw+=e.content;aiMsg.querySelector('.b').innerHTML=marked.parse(raw)}
+        else if(e.type==='STEP_CONTENT'&&e.content){raw+=e.content;aiMsg.querySelector('.b').innerHTML=safeMarkdown(raw)}
 
         scrollDown();
       }catch(ex){}
@@ -646,15 +678,21 @@ function finish(aiMsg){
     currentTechLabel='';
   }
   if(!b?.textContent?.trim())b.innerHTML='[空]';b.querySelector('.typing')?.remove();
-  addExportBtn(aiMsg,b);
-  streaming=false;document.getElementById('sendBtn').disabled=false;document.getElementById('userInput').focus();
+  var hasContent=b.textContent.trim()&&b.textContent.trim()!=='[空]';
+  if(hasContent){
+    addExportBtn(aiMsg,b);
+    addFeedbackBtns(b);
+    if(!fastMode)maybeAskFollowup(b);
+  }
+  streaming=false;abortController=null;
+  document.getElementById('sendBtn').disabled=false;hideStopBtn();
+  document.getElementById('userInput').focus();
 }
 
 // ====== 导出按钮 ======
 function addExportBtn(msgEl,bubble){
   const wrapper=document.createElement('div');wrapper.style.position='relative';
   bubble.parentNode.insertBefore(wrapper,bubble);wrapper.appendChild(bubble);
-
   const btn=document.createElement('button');btn.className='export-btn';btn.textContent='📥 ▾';btn.title='导出文档';
   btn.onclick=function(e){e.stopPropagation();toggleExportMenu(btn,bubble.textContent.trim())};
   wrapper.appendChild(btn);
@@ -663,7 +701,6 @@ function addExportBtn(msgEl,bubble){
 function toggleExportMenu(btn,content){
   const old=document.querySelector('.export-menu');if(old)old.remove();
   if(!content)return;
-
   const menu=document.createElement('div');menu.className='export-menu show';
   menu.innerHTML=`
     <button onclick="doExport('PPT','${btoa(unescape(encodeURIComponent(content)))}')">📽️ 导出 PPT</button>
@@ -691,8 +728,242 @@ async function doExport(format,encodedContent){
 // ====== 工具函数 ======
 function addMsg(type,html,scroll=true){const chat=document.getElementById('chat');const div=document.createElement('div');div.className='msg '+type;const b=document.createElement('div');b.className='b';b.innerHTML=html;div.appendChild(b);chat.appendChild(div);if(scroll)scrollDown();return div}
 function scrollDown(){const c=document.getElementById('chat');c.scrollTop=c.scrollHeight}
-function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,150)+'px'}
-function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,150)+'px';updateSendBtn()}
+function updateSendBtn(){var t=document.getElementById('userInput').value.trim();var btn=document.getElementById('sendBtn');btn.disabled=!t&&!pendingFiles.length;btn.style.opacity=btn.disabled?'0.4':''}
+function handleKey(e){
+  if(e.key==='ArrowUp'&&!e.target.value){e.preventDefault();var p=getPrevInput();if(p!==null){e.target.value=p;autoResize(e.target)}return}
+  if(e.key==='ArrowDown'&&!e.target.value){e.preventDefault();var n=getNextInput();if(n!==null){e.target.value=n;autoResize(e.target)}return}
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}
+}
+
+/* ====== 批量分析队列 ====== */
+var batchQueue=[];
+
+function toggleBatchQueue(id,name){
+  var idx=batchQueue.findIndex(function(q){return q.id===id});
+  if(idx>=0){batchQueue.splice(idx,1)}else{ batchQueue.push({id:id,name:name}) }
+  renderBatchBar();
+  var el=document.querySelector('.s-item[data-id="'+id+'"]');
+  if(el)el.classList.toggle('queued',idx<0);
+}
+function clearQueue(){batchQueue=[];renderBatchBar();document.querySelectorAll('.s-item.queued').forEach(function(e){e.classList.remove('queued')})}
+function renderBatchBar(){
+  var bar=document.getElementById('batchBar'),tags=document.getElementById('batchTags'),btn=document.getElementById('batchGoBtn');
+  if(!bar||!tags)return;
+  if(!batchQueue.length){bar.style.display='none';return}
+  bar.style.display='flex';
+  tags.innerHTML=batchQueue.map(function(q,i){return '<span style="display:flex;align-items:center;gap:2px;padding:2px 8px;border-radius:10px;background:rgba(240,160,80,.15);border:1px solid rgba(240,160,80,.3);font-size:10px;color:var(--warn);white-space:nowrap">'+q.name+'<button onclick="toggleBatchQueue(\''+q.id+'\',\''+q.name.replace(/'/g,"\\'")+'\')" style="border:none;background:none;color:var(--text2);cursor:pointer;font-size:12px;padding:0 2px">×</button></span>'}).join('');
+  btn.textContent='▶ 执行('+batchQueue.length+')';
+}
+async function executeBatch(){
+  var text=document.getElementById('userInput').value.trim();
+  if(!text||!batchQueue.length||streaming)return;
+  if(batchQueue.length>10){addMsg('sys','⚠️ 最多10个技法，已截取前10个');batchQueue=batchQueue.slice(0,10)}
+  var chat=document.getElementById('chat');var w=chat.querySelector('.welcome');if(w)w.remove();
+  pushInput(text);
+  var ids=batchQueue.map(function(q){return q.id});
+  var names=batchQueue.map(function(q){return q.name}).join(' + ');
+  var total=ids.length;
+  addMsg('sys','📋 <b>批量分析:</b> '+names+' ('+total+'个技法) · v2.6 自动重试');
+  document.getElementById('userInput').value='';document.getElementById('userInput').style.height='auto';
+  streaming=true;abortController=new AbortController();showStopBtn();
+  var progBar=document.getElementById('batchProgressBar'),progFill=progBar?progBar.querySelector('.fill'):null;
+  if(progBar)progBar.style.display='block';if(progFill)progFill.style.width='0%';
+  var resultBubble=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
+  var completed=0;
+  try{
+    var resp=await fetch('/api/agent/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,techniqueIds:ids}),signal:abortController.signal});
+    var reader=resp.body.getReader();var dec=new TextDecoder();
+    var buf='',raw='';
+    while(true){
+      var r=await reader.read();if(r.done)break;
+      buf+=dec.decode(r.value,{stream:true});
+      var lines=buf.split('\n');buf=lines.pop()||'';
+      for(var li=0;li<lines.length;li++){
+        var line=lines[li];
+        if(!line.startsWith('data:'))continue;
+        try{var e=JSON.parse(line.slice(5).trim());if(!e||!e.type)continue;
+          if(e.techniqueId==='batch-header'){completed++;if(progFill)progFill.style.width=Math.round(completed/total*100)+'%'}
+          else if(e.type==='STEP_START'){addMsg('sys','📌 '+(e.stepName||''))}
+          else if(e.type==='STEP_CONTENT'&&e.content){raw+=e.content;resultBubble.querySelector('.b').innerHTML=safeMarkdown(raw)}
+          scrollDown();
+        }catch(ex){}
+      }
+    }
+  }catch(e){if(e.name!=='AbortError')resultBubble.querySelector('.b').innerHTML='<span style="color:#f05050">❌ 批量分析失败: '+(e.message||'')+'</span>'}
+  if(progBar)progBar.style.display='none';
+  finish(resultBubble);clearQueue();
+}
+
+async function smartPreAnalyze(){
+  var input=document.getElementById('userInput'),text=input.value.trim();
+  if(!text&&!pendingFiles.length){addMsg('sys','⚠️ 请先输入内容再预分析');return}
+  // 如果有文件，先读取
+  var content=text||'';
+  if(pendingFiles.length){
+    var filesSnapshot=[...pendingFiles];
+    var fileContent=await readFilesContent(filesSnapshot);
+    content=fileContent+'\n---\n'+content;
+  }
+  addMsg('sys','🔬 <b>智能预分析中...</b> 判断复杂度+推荐技法数 (约200 Token)');
+  try{
+    var r=await fetch('/api/agent/intake',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:content,useModel:'true'})});
+    var data=await r.json();
+    // 显示结果卡片
+    var labels={1:'🟢 简单',2:'🟢 简单',3:'🟡 中等',4:'🟡 中等',5:'🟠 复杂',6:'🟠 复杂',7:'🔴 高度复杂',8:'🔴 高度复杂',9:'🔴 高度复杂',10:'🔴 高度复杂'};
+    var label=labels[data.complexity]||'🔴 复杂';
+    var html='<div style="padding:12px 16px;border-radius:10px;background:rgba(78,203,113,.06);border:1px solid rgba(78,203,113,.2)">';
+    html+='<div style="font-size:13px;font-weight:600;color:var(--accent3);margin-bottom:8px">🔬 智能预分析结果</div>';
+    html+='<div style="font-size:12px;color:var(--text);margin-bottom:4px"><b>复杂度:</b> '+label+' ('+data.complexity+'/10) — '+data.complexityLabel+'</div>';
+    html+='<div style="font-size:12px;color:var(--text);margin-bottom:4px"><b>建议技法:</b> '+data.recommendedTechCount+'个</div>';
+    html+='<div style="font-size:12px;color:var(--text);margin-bottom:4px"><b>涉及领域:</b> '+(data.domains||[]).join(', ')+'</div>';
+    html+='<div style="font-size:11px;color:var(--text2);margin-bottom:4px"><b>判断依据:</b> '+data.reasoning+'</div>';
+    html+='<div style="font-size:11px;color:var(--warn);margin-bottom:8px"><b>预估Token:</b> ~'+data.estimatedTokens+' (vs 深度思考 ~12000)</div>';
+    if(data.techniqueDetails&&data.techniqueDetails.length){
+      html+='<div style="font-size:11px;color:var(--text2);margin-bottom:6px"><b>推荐技法:</b></div>';
+      data.techniqueDetails.forEach(function(t){
+        html+='<div style="font-size:10px;color:var(--accent);margin:2px 0;padding:2px 6px;background:rgba(124,92,252,.08);border-radius:4px;display:inline-block;margin-right:4px">['+t.id+'] '+t.name+'</div>';
+      });
+      html+='</div>';
+    }
+    html+='<button onclick="autoQueueIntake(\''+JSON.stringify(data.suggestedTechniqueIds).replace(/'/g,"\\'")+'\')" style="margin-top:8px;padding:6px 16px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--accent3),#3a9f5c);color:#000;font-size:12px;font-weight:600;cursor:pointer">📋 自动加入队列并执行</button>';
+    html+='</div>';
+    var resultBubble=addMsg('ai','');resultBubble.querySelector('.b').innerHTML=html;
+    scrollDown();
+    document.getElementById('intakeResult').textContent='复杂度'+data.complexity+'/10 · 建议'+data.recommendedTechCount+'个技法 · 预估'+data.estimatedTokens+'tokens';
+  }catch(e){
+    addMsg('sys','<span style="color:#f05050">❌ 预分析失败: '+(e.message||'')+'</span>');
+  }
+}
+
+function autoQueueIntake(idsJson){
+  clearQueue();
+  var ids=JSON.parse(idsJson);
+  ids.forEach(function(id){
+    // 从techNameMap获取名称
+    var info=techNameMap[id];
+    var name=info?info.name:id;
+    toggleBatchQueue(id,name);
+  });
+  renderBatchBar();
+  // 自动执行
+  setTimeout(function(){executeBatch()},500);
+}
+
+/* ====== v2.3 新增功能 ====== */
+
+// 停止生成
+function stopGeneration(){if(abortController){abortController.abort();abortController=null}streaming=false;document.getElementById('sendBtn').disabled=false;document.getElementById('sendBtn').style.display='';document.getElementById('stopBtn').style.display='none';addMsg('sys','⏹ 已停止')}
+function showStopBtn(){document.getElementById('sendBtn').style.display='none';document.getElementById('stopBtn').style.display=''}
+function hideStopBtn(){document.getElementById('sendBtn').style.display='';document.getElementById('stopBtn').style.display='none'}
+
+// 输入历史
+function pushInput(t){if(!t||!t.trim())return;inputHistoryArr.unshift(t);if(inputHistoryArr.length>100)inputHistoryArr.pop();inputHistoryPos=-1}
+function getPrevInput(){if(!inputHistoryArr.length)return null;if(inputHistoryPos<inputHistoryArr.length-1)inputHistoryPos++;return inputHistoryArr[inputHistoryPos]||null}
+function getNextInput(){if(inputHistoryPos>0){inputHistoryPos--;return inputHistoryArr[inputHistoryPos]}inputHistoryPos=-1;return null}
+
+// XSS防护
+function safeMarkdown(text){if(!text)return'';try{return marked.parse(text,{sanitize:true})}catch(e){return text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}}
+
+// 快捷指令
+function handleQuickCmd(text){
+  if(!text||!text.startsWith('/'))return false;
+  var cmd=text.split(' ')[0].trim();
+  var map={'/自由':['','💬 自由对话'],'/技法':['auto','🤖 智能推荐'],'/配方':['auto','📦 配方推荐'],'/深度':['auto','🧠 深度思考']};
+  var act=map[cmd];
+  if(!act)return false;
+  if(cmd==='/深度'&&fastMode)toggleFast();
+  mode=act[0];
+  document.querySelectorAll('.s-item,.recipe-item').forEach(function(e){e.classList.remove('on')});
+  if(act[0]==='auto'){var ae=document.querySelector('.recipe-item[data-id="auto"]');if(ae)ae.classList.add('on')}
+  document.getElementById('statusTag').innerHTML=act[1];
+  addMsg('sys',act[1]+'模式');
+  document.getElementById('userInput').value='';document.getElementById('userInput').focus();
+  return true;
+}
+
+// 追问
+function maybeAskFollowup(bubble){
+  var content=bubble.textContent.trim();
+  if(!content||content.length<100||fastMode)return;
+  var followups=[
+    {q:'要不要我深入分析其中某个点？',cmd:'深入分析一下'},
+    {q:'需要转化成具体行动计划吗？',cmd:'把这个方案转化成具体行动计划'},
+    {q:'要不要用魔鬼审阅法挑漏洞？',cmd:'用魔鬼审阅法挑一下这个方案的漏洞'},
+    {q:'需要导出成Word/PPT吗？点击底部的导出按钮即可',cmd:null}
+  ];
+  var f=followups[Math.floor(Math.random()*followups.length)];
+  var div=document.createElement('div');
+  div.style.cssText='margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(124,92,252,.06);border:1px dashed rgba(124,92,252,.2);font-size:11px;color:var(--text2);display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+  div.innerHTML='<span>💡 '+f.q+'</span>';
+  if(f.cmd){var btn=document.createElement('button');btn.textContent='👉 '+f.cmd.substring(0,20);btn.style.cssText='padding:3px 10px;border-radius:12px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:10px;cursor:pointer;white-space:nowrap';btn.onclick=function(){document.getElementById('userInput').value=f.cmd;document.getElementById('userInput').focus();autoResize(document.getElementById('userInput'))};div.appendChild(btn)}
+  bubble.appendChild(div);
+}
+
+// 反馈按钮
+function addFeedbackBtns(bubble){
+  var wrap=document.createElement('div');
+  wrap.style.cssText='display:flex;gap:4px;margin-bottom:8px';
+  wrap.innerHTML='<button onclick="sendFeedback(\'up\',this)" style="padding:2px 8px;font-size:14px;border:none;background:transparent;cursor:pointer" title="有帮助">👍</button><button onclick="sendFeedback(\'down\',this)" style="padding:2px 8px;font-size:14px;border:none;background:transparent;cursor:pointer" title="不够好">👎</button>';
+  bubble.insertBefore(wrap,bubble.firstChild);
+}
+function sendFeedback(rating,btn){
+  btn.parentElement.innerHTML='<span style="font-size:10px;color:var(--accent2)">'+(rating==='up'?'👍 感谢！':'👎 会改进')+'</span>';
+  fetch('/api/agent/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:currentSessionId,rating:rating})}).catch(function(){});
+}
+
+// 流重试
+async function streamWithRetry(url,body,aiMsg,retries){
+  if(retries===undefined)retries=0;
+  try{await streamToMsg(url,body,aiMsg)}catch(e){
+    if(e.name==='AbortError')return;
+    if(retries<3){await new Promise(function(r){setTimeout(r,Math.pow(2,retries)*1000)});if(aiMsg.querySelector('.b'))aiMsg.querySelector('.b').innerHTML='<div class="typing"><span></span><span></span><span></span></div>';return streamWithRetry(url,body,aiMsg,retries+1)}
+    else{if(aiMsg.querySelector('.b'))aiMsg.querySelector('.b').innerHTML='<span style="color:#f05050">❌ 重试3次后仍失败</span>'}
+  }
+}
+
+// 咨询模式: 深挖维度
+async function consultingDeepDive(encodedQuestion,encodedDimension,btn){
+  var question=decodeURIComponent(escape(atob(encodedQuestion)));
+  var dimension=decodeURIComponent(escape(atob(encodedDimension)));
+  btn.textContent='深挖中...';btn.disabled=true;
+  var resultDiv=document.createElement('div');
+  resultDiv.style.cssText='margin:8px 0;padding:10px 14px;border-radius:10px;background:rgba(240,160,80,.04);border:1px solid rgba(240,160,80,.15);border-left:3px solid var(--warn)';
+  resultDiv.innerHTML='<div style="font-size:12px;color:var(--warn);font-weight:600;margin-bottom:6px">🔬 深挖: '+dimension+'</div><div class="typing"><span></span><span></span><span></span></div>';
+  btn.parentElement.after(resultDiv);
+  streaming=true;abortController=new AbortController();showStopBtn();
+  try{
+    await streamToMsg('/api/agent/consulting/deep-dive',{question:question,dimension:dimension},resultDiv);
+    resultDiv.querySelector('.typing')?.remove();
+  }catch(e){
+    resultDiv.innerHTML='<span style="color:#f05050">❌ 深挖失败: '+(e.message||'未知错误')+'</span>';
+  }
+  streaming=false;abortController=null;
+  document.getElementById('sendBtn').disabled=false;hideStopBtn();
+  btn.textContent='🔍 深挖';btn.disabled=false;
+}
+
+// 对话导出Markdown
+function exportChatMd(){
+  var md='# 徐振伟智能体 · 对话记录\n\n> '+new Date().toLocaleString('zh-CN')+'\n\n---\n\n';
+  document.getElementById('chat').querySelectorAll('.msg').forEach(function(m){
+    var role='系统',content=m.querySelector('.b')?.textContent?.trim();
+    if(!content||content==='[空]')return;
+    if(m.classList.contains('user'))role='🧑 用户';
+    else if(m.classList.contains('ai')||m.classList.contains('reason'))role='🤖 徐振伟';
+    md+='### '+role+'\n\n'+content+'\n\n---\n\n';
+  });
+  var blob=new Blob([md],{type:'text/markdown'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='对话_'+new Date().toISOString().slice(0,10)+'.md';a.click();URL.revokeObjectURL(a.href);
+  addMsg('sys','📥 对话已导出为 Markdown');
+}
+
+// 重复初始化防护
+function safeInit(fn){
+  if(_initDone)return;_initDone=true;fn();
+}
+// 页面加载初始化
+updateSendBtn();
 </script>
 </body>
 </html>
