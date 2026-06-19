@@ -27,17 +27,20 @@ public class TechniqueRecommender {
     private final ChatClient chatClient;
     private final RecommendationDecisionEngine decisionEngine;
     private final TechniqueRelations techniqueRelations;
+    private final MeceCoverageEngine meceEngine;
 
     public TechniqueRecommender(TechniqueRegistry registry,
                                 DomainAdvisor domainAdvisor,
                                 ChatClient chatClient,
                                 RecommendationDecisionEngine decisionEngine,
-                                TechniqueRelations techniqueRelations) {
+                                TechniqueRelations techniqueRelations,
+                                MeceCoverageEngine meceEngine) {
         this.registry = registry;
         this.domainAdvisor = domainAdvisor;
         this.chatClient = chatClient;
         this.decisionEngine = decisionEngine;
         this.techniqueRelations = techniqueRelations;
+        this.meceEngine = meceEngine;
     }
 
     /**
@@ -100,28 +103,123 @@ public class TechniqueRecommender {
         // 5. 匹配技法组合配方
         var recipe = matchRecipe(input);
 
-        // 5. 构建推荐结果（携带复杂度元数据）
+        // 5. v3.1 MECE覆盖管道: 复杂问题时用MECE确保四阶段闭环
+        var mecePlan = meceEngine.plan(analysis, userInput);
+        List<TechniqueSuggestion> finalSuggestions;
+
+        if (mecePlan.totalSlots() > 0 && matches.size() < mecePlan.totalSlots()) {
+            // MECE模式: 按阶段补全技法
+            finalSuggestions = fillByMece(matches.stream().map(MatchResult::toSuggestion)
+                    .collect(java.util.stream.Collectors.toList()), mecePlan, analysis, userInput);
+        } else if (!matches.isEmpty()) {
+            finalSuggestions = matches.stream().map(MatchResult::toSuggestion).toList();
+        } else {
+            finalSuggestions = List.of(new TechniqueSuggestion("003", "半成品激发法", 0.6,
+                    "这是最好的开场技法——先让AI出几个不完美的方案，激发你的灵感"));
+        }
+
+        // 6. 构建推荐结果
         if (domainMatch.isPresent()) {
-            var suggestions = matches.isEmpty() ? domainMatch.get().suggestedTechniques.stream()
-                    .map(r -> new TechniqueSuggestion(r.id(), r.reason(), 0.8))
-                    .toList() : matches.stream().map(MatchResult::toSuggestion).toList();
-            return new RecommendationResult(suggestions, recipe,
-                    "已识别你的业务：「%s」。推荐以下技法和配方：".formatted(domainMatch.get().name),
-                    analysis.complexity(), suggestions.size());
+            return new RecommendationResult(finalSuggestions, recipe,
+                    "已识别你的业务：「%s」。%s".formatted(domainMatch.get().name,
+                            mecePlan.totalSlots() > 0 ? mecePlan.reasoning() : "推荐以下技法："),
+                    analysis.complexity(), finalSuggestions.size(), mecePlan);
         }
 
-        if (!matches.isEmpty()) {
-            var suggestions = matches.stream().map(MatchResult::toSuggestion).toList();
-            return new RecommendationResult(suggestions, recipe,
-                    "根据你的问题，推荐以下技法：", analysis.complexity(), suggestions.size());
+        return new RecommendationResult(finalSuggestions, recipe,
+                mecePlan.totalSlots() > 0 ? mecePlan.reasoning() : "根据你的问题，推荐以下技法：",
+                analysis.complexity(), finalSuggestions.size(), mecePlan);
+    }
+
+    /**
+     * v3.1 用 MECE 计划补全技法选择 —— 确保四阶段覆盖
+     */
+    private List<TechniqueSuggestion> fillByMece(List<TechniqueSuggestion> keywordMatches,
+                                                  MeceCoverageEngine.MecePlan plan,
+                                                  RecommendationDecisionEngine.AnalysisContext ctx,
+                                                  String userInput) {
+        Set<String> usedIds = new LinkedHashSet<>();
+        Map<MeceCoverageEngine.MecePhase, List<TechniqueSuggestion>> phaseCandidates = new LinkedHashMap<>();
+
+        // 第一步: 将现有关键词匹配结果按阶段分类
+        for (var phase : MeceCoverageEngine.MecePhase.values()) {
+            var categories = MeceCoverageEngine.getPhaseCategories(phase);
+            List<TechniqueSuggestion> matched = new ArrayList<>();
+            for (var s : keywordMatches) {
+                var tech = registry.get(s.techniqueId());
+                if (tech.isPresent() && categories.contains(tech.get().getCategory())) {
+                    matched.add(s);
+                    usedIds.add(s.techniqueId());
+                }
+            }
+            phaseCandidates.put(phase, matched);
         }
 
-        // 默认：用"半成品激发法"开场
-        var defaultSuggestion = List.of(new TechniqueSuggestion("003", "半成品激发法", 0.6,
-                "这是最好的开场技法——先让AI出几个不完美的方案，激发你的灵感"));
-        return new RecommendationResult(defaultSuggestion, null,
-                "试试「半成品激发法」开场，它能让AI先给你一些不完美的灵感：",
-                analysis.complexity(), 1);
+        // 第二步: 对每个阶段，不足的槽位从 Registry 补全
+        for (var phase : MeceCoverageEngine.MecePhase.values()) {
+            int needed = plan.slotAllocation().getOrDefault(phase, 0);
+            var existing = phaseCandidates.getOrDefault(phase, new ArrayList<>());
+            if (existing.size() >= needed) continue;
+
+            var categories = MeceCoverageEngine.getPhaseCategories(phase);
+            var pool = registry.getAll().stream()
+                    .filter(t -> categories.contains(t.getCategory()))
+                    .filter(t -> !usedIds.contains(t.getId()))
+                    .sorted((a, b) -> {
+                        // 优先选名称/描述与用户输入语义相关的
+                        int aMatch = countKeywordOverlap(a.getName() + a.getDescription(), userInput);
+                        int bMatch = countKeywordOverlap(b.getName() + b.getDescription(), userInput);
+                        return Integer.compare(bMatch, aMatch);
+                    })
+                    .limit(needed - existing.size())
+                    .toList();
+
+            for (var t : pool) {
+                existing.add(new TechniqueSuggestion(t.getId(), t.getName(), 0.55,
+                        "🔧 MECE补全: " + phase.getLabel()));
+                usedIds.add(t.getId());
+            }
+            phaseCandidates.put(phase, existing);
+        }
+
+        // 第三步: 按计划中的顺序输出最终列表（发散→收敛→验证→执行）
+        List<TechniqueSuggestion> result = new ArrayList<>();
+        for (var phase : MeceCoverageEngine.MecePhase.values()) {
+            var suggestions = phaseCandidates.getOrDefault(phase, List.of());
+            int slots = plan.slotAllocation().getOrDefault(phase, 0);
+            int take = Math.min(slots, suggestions.size());
+            for (int i = 0; i < take; i++) {
+                if (result.size() >= MeceCoverageEngine.MAX_SLOTS) break;
+                result.add(suggestions.get(i));
+            }
+        }
+
+        // 如果还不够，从关键词匹配中补（去重）
+        if (result.size() < plan.totalSlots()) {
+            for (var s : keywordMatches) {
+                if (result.size() >= plan.totalSlots()) break;
+                if (!usedIds.contains(s.techniqueId())) {
+                    result.add(s);
+                    usedIds.add(s.techniqueId());
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /** 简单的关键词重叠计数 */
+    private int countKeywordOverlap(String text, String query) {
+        int count = 0;
+        String lower = text.toLowerCase();
+        String qLower = query.toLowerCase();
+        // 从query中提取2-4字片段进行匹配
+        for (int len = 3; len >= 2; len--) {
+            for (int i = 0; i + len <= qLower.length(); i++) {
+                if (lower.contains(qLower.substring(i, i + len))) count++;
+            }
+        }
+        return count;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -604,14 +702,35 @@ public class TechniqueRecommender {
             TechniqueRecipe recipe,
             String explanation,
             RecommendationDecisionEngine.ComplexityLevel complexity,
-            int recommendCount
+            int recommendCount,
+            MeceCoverageEngine.MecePlan mecePlan  // v3.1: MECE覆盖计划
     ) {
+        public RecommendationResult(List<TechniqueSuggestion> suggestions,
+                                     TechniqueRecipe recipe,
+                                     String explanation,
+                                     RecommendationDecisionEngine.ComplexityLevel complexity,
+                                     int recommendCount) {
+            this(suggestions, recipe, explanation, complexity, recommendCount, null);
+        }
         public RecommendationResult(List<TechniqueSuggestion> suggestions,
                                      TechniqueRecipe recipe,
                                      String explanation) {
             this(suggestions, recipe, explanation,
                     RecommendationDecisionEngine.ComplexityLevel.SINGLE_DOMAIN,
-                    suggestions.size());
+                    suggestions.size(), null);
+        }
+        public RecommendationResult(List<TechniqueSuggestion> suggestions,
+                                     TechniqueRecipe recipe,
+                                     String explanation,
+                                     RecommendationDecisionEngine.ComplexityLevel complexity,
+                                     int recommendCount,
+                                     MeceCoverageEngine.MecePlan mecePlan) {
+            this.suggestions = suggestions;
+            this.recipe = recipe;
+            this.explanation = explanation;
+            this.complexity = complexity;
+            this.recommendCount = recommendCount;
+            this.mecePlan = mecePlan;
         }
     }
 

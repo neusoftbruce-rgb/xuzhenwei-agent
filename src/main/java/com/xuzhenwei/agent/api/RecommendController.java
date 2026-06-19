@@ -88,6 +88,30 @@ public class RecommendController {
                 "type", analysis.intent().name(),
                 "label", analysis.intent().getLabel()
         ));
+        // v3.1: MECE覆盖计划
+        if (result.mecePlan() != null && result.mecePlan().totalSlots() > 0) {
+            var mece = result.mecePlan();
+            List<Map<String, Object>> phases = new ArrayList<>();
+            for (var phase : com.xuzhenwei.agent.technique.MeceCoverageEngine.MecePhase.values()) {
+                int slots = mece.slotAllocation().getOrDefault(phase, 0);
+                double demand = mece.demandStrength().getOrDefault(phase, 0.0);
+                if (slots > 0) {
+                    phases.add(Map.of(
+                            "phase", phase.name(),
+                            "label", phase.getLabel(),
+                            "description", phase.getDescription(),
+                            "slots", slots,
+                            "demand", Math.round(demand * 100)
+                    ));
+                }
+            }
+            response.put("mece", Map.of(
+                    "totalSlots", mece.totalSlots(),
+                    "reasoning", mece.reasoning(),
+                    "isComplete", mece.isComplete(),
+                    "phases", phases
+            ));
+        }
         return response;
     }
 

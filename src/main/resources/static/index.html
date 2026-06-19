@@ -589,7 +589,17 @@ async function send(){
 
   html+=recData&&recData.explanation?'<div style="font-size:12px;color:var(--text2);margin-bottom:4px">'+recData.explanation+'</div>':'';
   if(recData&&recData.complexity){
-    html+='<div style="font-size:10px;color:var(--text2);margin-bottom:10px">📊 复杂度: <b style="color:var(--accent2)">'+recData.complexity.label+'</b> · 推荐'+recData.complexity.recommendCount+'条 · ⚡纯本地引擎</div>';
+    html+='<div style="font-size:10px;color:var(--text2);margin-bottom:6px">📊 复杂度: <b style="color:var(--accent2)">'+recData.complexity.label+'</b> · 推荐'+recData.complexity.recommendCount+'条 · ⚡纯本地引擎</div>';
+  }
+  // v3.1: MECE覆盖计划显示
+  if(recData&&recData.mece&&recData.mece.phases&&recData.mece.phases.length){
+    html+='<div style="font-size:10px;color:var(--text2);margin-bottom:10px;padding:6px 10px;background:rgba(78,203,113,.04);border-radius:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
+    html+='<span style="color:var(--accent3);font-weight:600">'+ (recData.mece.isComplete?'✅ 四阶段闭环':'⚠️ 部分覆盖') +'</span>';
+    recData.mece.phases.forEach(function(p){
+      html+='<span style="padding:1px 8px;border-radius:8px;background:rgba(124,92,252,.1);color:var(--accent2);font-size:9px">'+p.label+'×'+p.slots+'</span>';
+    });
+    html+='<span style="font-size:9px;color:var(--text2)">('+recData.mece.reasoning+')</span>';
+    html+='</div>';
   }
 
   if(confLevel==='high'){
