@@ -2,6 +2,7 @@ package com.xuzhenwei.agent.technique;
 
 import com.xuzhenwei.agent.agent.AgentEvent;
 import reactor.core.publisher.Flux;
+import java.util.List;
 
 /**
  * 技法接口 — 56 种人机共想技法的统一契约

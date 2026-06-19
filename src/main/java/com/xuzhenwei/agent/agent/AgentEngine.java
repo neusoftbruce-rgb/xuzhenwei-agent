@@ -3,6 +3,7 @@ package com.xuzhenwei.agent.agent;
 import com.xuzhenwei.agent.technique.TechniqueExecutor;
 import com.xuzhenwei.agent.technique.TechniqueRecommender;
 import com.xuzhenwei.agent.technique.TechniqueRegistry;
+import com.xuzhenwei.agent.technique.RecommendationDecisionEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
