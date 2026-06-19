@@ -41,4 +41,11 @@ public interface Technique {
      * @return 流式 AgentEvent，每步输出一个事件
      */
     Flux<AgentEvent> execute(String topic, String conversationId);
+
+    /**
+     * 关联技法 —— v3.0 方法8：技法关系图谱
+     * 返回当前技法的后继技法（执行完本条后推荐的下一步）。
+     * 默认空列表，子类可覆盖。
+     */
+    default List<String> getRelated() { return List.of(); }
 }

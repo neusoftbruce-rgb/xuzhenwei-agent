@@ -270,6 +270,74 @@ public class ConversationManager {
         }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // 方法9: 结果缓存与复用
+    // ═══════════════════════════════════════════════════════════
+
+    /** 近期分析结果缓存 */
+    private final Map<String, CachedResponse> responseCache = new ConcurrentHashMap<>();
+    private static final int MAX_CACHED_RESPONSES = 50;
+    private static final double SIMILARITY_THRESHOLD = 0.85;
+
+    public record CachedResponse(
+            String userQuestion, String techniqueId, String techniqueName,
+            String responseSummary, long timestamp
+    ) {}
+
+    /** 查找相似问题的缓存结果 */
+    public CachedResponse findSimilar(String userQuestion) {
+        if (userQuestion == null || userQuestion.isBlank()) return null;
+        String fp = fingerprint(userQuestion);
+        var exact = responseCache.get(fp);
+        if (exact != null) return exact;
+        CachedResponse best = null;
+        double bestSim = 0;
+        for (var entry : responseCache.entrySet()) {
+            double sim = similarity(fp, entry.getKey());
+            if (sim > bestSim) { bestSim = sim; best = entry.getValue(); }
+        }
+        return (best != null && bestSim >= SIMILARITY_THRESHOLD) ? best : null;
+    }
+
+    /** 存入缓存 */
+    public void cacheResponse(String userQuestion, String techniqueId,
+                               String techniqueName, String responseContent) {
+        if (userQuestion == null || responseContent == null) return;
+        String fp = fingerprint(userQuestion);
+        String summary = responseContent.length() > 200 ? responseContent.substring(0, 200) : responseContent;
+        responseCache.put(fp, new CachedResponse(userQuestion, techniqueId, techniqueName, summary, System.currentTimeMillis()));
+        if (responseCache.size() > MAX_CACHED_RESPONSES) {
+            responseCache.entrySet().stream()
+                    .sorted(Map.Entry.comparingByValue((a, b) -> Long.compare(a.timestamp, b.timestamp)))
+                    .limit(responseCache.size() - MAX_CACHED_RESPONSES)
+                    .forEach(e -> responseCache.remove(e.getKey()));
+        }
+    }
+
+    private String fingerprint(String text) {
+        return text.toLowerCase().replaceAll("[\\s\\p{Punct}，。！？、；：\"\"''【】《》（）…—·]", "");
+    }
+
+    private double similarity(String a, String b) {
+        if (a.equals(b)) return 1.0;
+        int maxLen = Math.max(a.length(), b.length());
+        if (maxLen == 0) return 1.0;
+        int lcs = lcs(a, b);
+        return (double) lcs / Math.min(a.length(), b.length());
+    }
+
+    private int lcs(String a, String b) {
+        int m = a.length(), n = b.length();
+        int[] prev = new int[n + 1], curr = new int[n + 1];
+        for (int i = 1; i <= m; i++) {
+            for (int j = 1; j <= n; j++) {
+                curr[j] = (a.charAt(i - 1) == b.charAt(j - 1)) ? prev[j - 1] + 1 : Math.max(prev[j], curr[j - 1]);
+            }
+            int[] tmp = prev; prev = curr; curr = tmp;
+        }
+        return prev[n];
+    }
+
     /**
      * 上下文消息
      */
