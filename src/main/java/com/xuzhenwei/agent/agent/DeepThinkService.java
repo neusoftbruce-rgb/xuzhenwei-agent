@@ -21,7 +21,7 @@ public class DeepThinkService {
     private static final Logger log = LoggerFactory.getLogger(DeepThinkService.class);
 
     private final ChatClient chatClient;
-    private static final String REASONER_MODEL = "deepseek-reasoner";
+    private static final String REASONER_MODEL = "glm-5.2"; // 智谱5.2 (统一使用, 替代 glm-4-plus)
 
     public DeepThinkService(ChatClient chatClient) {
         this.chatClient = chatClient;
@@ -69,6 +69,7 @@ public class DeepThinkService {
                 .call()
                 .content();
 
+        if (reasoning == null) reasoning = "";
         long reasoningTime = System.currentTimeMillis() - start;
         log.info("🧠 推理完成 ({}ms, {}字)", reasoningTime, reasoning.length());
 
@@ -97,6 +98,7 @@ public class DeepThinkService {
                 .user(polishPrompt)
                 .call()
                 .content();
+        if (finalAnswer == null) finalAnswer = "";
 
         log.info("✅ 深度思考总耗时: {}ms", System.currentTimeMillis() - start);
         return new DeepThinkResult(reasoning, finalAnswer);

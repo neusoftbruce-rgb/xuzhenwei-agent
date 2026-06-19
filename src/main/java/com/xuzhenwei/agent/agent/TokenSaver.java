@@ -107,7 +107,7 @@ public class TokenSaver {
         return prompt
                 .replaceAll("(?m)^\\s*\\*\\*要求\\*\\*[：:].*$", "")
                 .replaceAll("(?m)^\\s*\\*\\*注意\\*\\*[：:].*$", "")
-                .replaceAll("(?m)^\\s*>\\s*\\*\\*.*$", "")
+                .replaceAll("(?m)^\\s*>[>\\s]*(\\*\\*要求\\*\\*|\\*\\*注意\\*\\*|\\*\\*请\\*\\*).*$", "")
                 .replaceAll("\n{3,}", "\n\n")
                 .trim();
     }
@@ -120,7 +120,19 @@ public class TokenSaver {
     }
 
     private String hash(String text) {
-        return String.valueOf(text.trim().toLowerCase().hashCode());
+        // FIX-05: Use SHA-256 to avoid hash collisions (String.hashCode() has 32-bit space)
+        try {
+            var md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(text.trim().toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            // Take first 16 hex chars (64 bits) — sufficient for cache keys
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 8; i++) {
+                sb.append(String.format("%02x", digest[i]));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return String.valueOf(text.trim().toLowerCase().hashCode());
+        }
     }
 
     private record CacheEntry(String result, long time) {}

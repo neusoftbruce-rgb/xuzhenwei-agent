@@ -1,0 +1,96 @@
+<!-- 对话首页 -->
+<view class="page">
+  <!-- 导航栏 -->
+  <view class="navbar">
+    <view class="nav-btn" bindtap="openDrawer">☰</view>
+    <text class="title">徐振伟智能体</text>
+  </view>
+
+  <!-- 模式快选条 -->
+  <scroll-view class="mode-bar" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="mode-chip {{mode==='auto'?'on':''}}" bindtap="setMode" data-mode="auto">🤖 智能推荐</view>
+    <view class="mode-chip {{mode===''?'on':''}}" bindtap="setMode" data-mode="">💬 自由对话</view>
+    <view class="mode-chip {{mode==='recipe:深度诊断套餐'?'on':''}}" bindtap="setMode" data-mode="recipe:深度诊断套餐">📦 深度诊断</view>
+    <view class="mode-chip {{mode==='recipe:农业品牌套餐'?'on':''}}" bindtap="setMode" data-mode="recipe:农业品牌套餐">📦 农业品牌</view>
+    <view class="mode-chip {{mode==='recipe:农场诊断：把脉开方跟诊'?'on':''}}" bindtap="setMode" data-mode="recipe:农场诊断：把脉开方跟诊">🏥 农场诊断</view>
+  </scroll-view>
+
+  <!-- 消息列表 -->
+  <scroll-view class="chat" scroll-y enhanced scroll-with-animation scroll-into-view="{{scrollTo}}">
+    <view wx:if="{{messages.length===0}}" class="welcome">
+      <text class="icon">🤖</text>
+      <view class="title">你好，我是徐振伟</view>
+      <text class="desc">你的农业咨询伙伴\n有问题随时聊</text>
+    </view>
+
+    <block wx:for="{{messages}}" wx:key="id">
+      <!-- 用户消息 -->
+      <view wx:if="{{item.role==='user'}}" class="msg msg-user">
+        <view class="bubble bubble-user">{{item.content}}</view>
+      </view>
+
+      <!-- AI消息 -->
+      <view wx:elif="{{item.role==='ai'}}" class="msg msg-ai">
+        <view class="bubble bubble-ai">
+          <rich-text nodes="{{item.html}}"></rich-text>
+          <view wx:if="{{item.exportable}}" class="export-btn">
+            <button bindtap="exportMsg" data-id="{{item.id}}">📥 导出 Word</button>
+          </view>
+        </view>
+      </view>
+
+      <!-- 推荐卡片 -->
+      <view wx:elif="{{item.role==='recommend'}}" class="msg msg-recommend">
+        <view class="bubble bubble-ai">
+          <view class="rec-keywords">
+            <text wx:for="{{item.keywords}}" wx:key="*this" class="rec-kw">{{item}}</text>
+          </view>
+          <view class="rec-cards">
+            <view wx:for="{{item.cards}}" wx:key="id" class="rec-card">
+              <text class="rc-id">{{item.id}}</text>
+              <view class="rc-info">
+                <text class="rc-name">{{item.name}}</text>
+                <text class="rc-reason">{{item.reason}}</text>
+              </view>
+              <text class="rc-pct">{{item.confidence}}%</text>
+            </view>
+          </view>
+          <view class="rec-actions">
+            <button class="btn-go" bindtap="executeRec">▶ 用推荐执行</button>
+            <button class="btn-swap" bindtap="retryRec">🔄 换一批</button>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 加载中 -->
+    <view wx:if="{{loading}}" class="msg msg-ai">
+      <view class="bubble bubble-ai"><view class="typing"><view></view><view></view><view></view></view></view>
+    </view>
+
+    <view id="bottom"></view>
+  </scroll-view>
+
+  <!-- 底部输入栏 -->
+  <view class="bottom-bar">
+    <button class="btn-voice {{recording?'recording':''}}" bindtouchstart="startRecord" bindtouchend="stopRecord">{{recording?'🔴':'🎤'}}</button>
+    <textarea value="{{inputText}}" placeholder="输入问题..." bindinput="onInput" bindconfirm="send" auto-height maxlength="2000" adjust-position="{{false}}" cursor-spacing="12"/>
+    <button class="btn-send" bindtap="send" disabled="{{!inputText||loading}}">➤</button>
+  </view>
+</view>
+
+<!-- 会话历史抽屉 -->
+<view class="drawer-mask {{drawerOpen?'show':''}}" bindtap="closeDrawer"></view>
+<view class="drawer {{drawerOpen?'open':''}}">
+  <view class="drawer-hd">
+    <text>📋 对话记录</text>
+    <button class="btn-new" bindtap="newChat">＋ 新对话</button>
+  </view>
+  <scroll-view class="drawer-list" scroll-y>
+    <view wx:for="{{sessions}}" wx:key="id" class="session-item {{item.id===currentSessionId?'active':''}}" bindtap="openSession" data-id="{{item.id}}">
+      <text class="si-name">{{item.name}}</text>
+      <text class="si-time">{{item.timeAgo}}</text>
+    </view>
+    <view wx:if="{{sessions.length===0}}" class="empty">还没有对话</view>
+  </scroll-view>
+</view>

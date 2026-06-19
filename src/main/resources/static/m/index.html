@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>徐振伟智能体 · 手机版</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root{
+  --bg:#0f0f1a; --surface:#18182a; --border:#2a2a48;
+  --text:#cdcde6; --text2:#7c7ca0;
+  --accent:#7c5cfc; --accent2:#5b8def; --accent3:#4ecb71; --warn:#f0a050;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;font-size:15px;line-height:1.6;-webkit-tap-highlight-color:transparent;user-select:none}
+
+/* ====== Top Bar ====== */
+.topbar{height:52px;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;z-index:10}
+.topbar .menu-btn{width:40px;height:40px;border-radius:10px;border:none;background:transparent;color:var(--text2);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.topbar .menu-btn:active{background:rgba(124,92,252,.15)}
+.topbar h1{font-size:16px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .tag{font-size:10px;padding:3px 8px;border-radius:10px;background:rgba(124,92,252,.12);color:var(--accent);flex-shrink:0}
+
+/* ====== Mode Chips ====== */
+.mode-bar{flex-shrink:0;padding:8px 12px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;background:var(--bg);border-bottom:1px solid rgba(42,42,72,.5)}
+.mode-bar::-webkit-scrollbar{display:none}
+.mode-chip{flex-shrink:0;padding:6px 14px;border-radius:16px;font-size:12px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s}
+.mode-chip:active{transform:scale(.95)}
+.mode-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ====== Chat ====== */
+.chat{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+.chat::-webkit-scrollbar{width:3px}
+.chat::-webkit-scrollbar-thumb{background:var(--border)}
+.welcome{text-align:center;padding:32px 16px 24px}
+.welcome .icon{font-size:48px;margin-bottom:12px}
+.welcome h2{font-size:18px;margin-bottom:8px;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.welcome p{color:var(--text2);font-size:13px;line-height:1.8}
+
+.msg{max-width:90%;animation:fadeIn .2s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end}
+.msg.ai,.msg.sys,.msg.recommend{align-self:flex-start}
+.msg .b{padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.65;word-break:break-word;position:relative}
+.msg.user .b{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-bottom-right-radius:4px}
+.msg.ai .b{background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg.sys .b{background:transparent;color:var(--text2);font-size:11px;text-align:center;padding:4px}
+.msg.recommend .b{background:rgba(124,92,252,.04);border:1px solid rgba(124,92,252,.2);padding:12px 14px}
+.msg.recommend .b::before{content:"🧠 分析中...";display:block;font-size:10px;color:var(--accent);margin-bottom:8px;font-weight:600}
+.msg .b h2{font-size:14px;color:var(--accent2);margin:6px 0 3px}
+.msg .b h3{font-size:13px;color:var(--accent2)}
+.msg .b strong{color:#a0a0ff}.msg .b ul,.msg .b ol{padding-left:16px;margin:4px 0}
+.msg .b li{margin:1px 0}.msg .b code{background:rgba(124,92,252,.1);padding:1px 4px;border-radius:3px;font-size:11px}
+.msg .b blockquote{border-left:2px solid var(--accent);margin:4px 0;padding:2px 10px;color:var(--text2);font-size:12px}
+.msg .b hr{border:none;border-top:1px solid var(--border);margin:6px 0}
+.msg .b table{border-collapse:collapse;width:100%;margin:6px 0;font-size:10px}
+.msg .b th,.msg .b td{border:1px solid var(--border);padding:3px 6px;text-align:left}
+
+/* Rec cards */
+.rec-keywords{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.rec-keywords span{font-size:9px;padding:2px 6px;border-radius:8px;background:rgba(124,92,252,.15);color:var(--accent2)}
+.rec-cards{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.rec-card{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(30,30,56,.6);border:1px solid var(--border);font-size:12px}
+.rec-card .rc-id{font-size:10px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:4px;font-weight:600;flex-shrink:0}
+.rec-card .rc-info{flex:1;min-width:0}.rec-card .rc-name{font-weight:600;font-size:12px}
+.rec-card .rc-reason{font-size:10px;color:var(--text2);margin-top:1px}
+.rec-card .rc-pct{font-size:12px;font-weight:700;color:var(--accent2);flex-shrink:0}
+.rec-actions{display:flex;gap:6px;flex-wrap:wrap}
+.rec-actions button{padding:8px 16px;border-radius:10px;font-size:12px;cursor:pointer;font-weight:600;border:none;min-height:44px}
+.btn-go{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;flex:1}
+.btn-recipe{background:var(--accent3);color:#000}
+.btn-swap{background:transparent;border:1px solid var(--border)!important;color:var(--text2)}
+
+/* Export */
+.export-btn-wrap{display:flex;justify-content:flex-end;margin-top:6px;gap:6px}
+.export-btn-wrap button{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;min-height:36px}
+.export-btn-wrap button:active{background:rgba(78,203,113,.1);border-color:var(--accent3);color:var(--accent3)}
+
+/* Session header */
+.session-header{padding:10px 14px;margin-bottom:6px;background:rgba(124,92,252,.06);border:1px solid rgba(124,92,252,.12);border-radius:10px;display:flex;align-items:center;gap:8px;font-size:13px}
+
+/* ====== Bottom Bar ====== */
+.bottom-bar{flex-shrink:0;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;z-index:10}
+.bottom-bar textarea{flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--border);background:#1e1e38;color:var(--text);font-size:15px;font-family:inherit;line-height:1.4;resize:none;outline:none;min-height:44px;max-height:120px}
+.bottom-bar textarea:focus{border-color:var(--accent)}
+.bottom-bar textarea::placeholder{color:var(--text2);font-size:13px}
+.btn-mic-m{width:44px;height:44px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.btn-mic-m:active{transform:scale(.92)}
+.btn-mic-m.recording{background:rgba(240,80,80,.12);border-color:#f05050;color:#f05050;animation:micPulse 1.5s infinite}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(240,80,80,.3)}50%{box-shadow:0 0 0 10px rgba(240,80,80,0)}}
+.btn-send-m{width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.btn-send-m:active{transform:scale(.92)}
+.btn-send-m:disabled{opacity:.4}
+
+/* ====== Session Drawer ====== */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:none}
+.drawer-overlay.show{display:block}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:280px;max-width:85vw;background:var(--surface);z-index:60;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,.4)}
+.drawer.open{transform:translateX(0)}
+.drawer-hd{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.drawer-hd h2{font-size:15px;flex:1}
+.drawer-new-btn{padding:8px 14px;border-radius:20px;border:1px dashed var(--accent3);background:transparent;color:var(--accent3);font-size:12px;cursor:pointer;min-height:36px}
+.drawer-new-btn:active{background:rgba(78,203,113,.1)}
+.drawer-list{flex:1;overflow-y:auto;padding:8px;-webkit-overflow-scrolling:touch}
+.drawer-item{padding:12px 14px;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:2px 0}
+.drawer-item:active{background:rgba(124,92,252,.08)}
+.drawer-item.active{background:rgba(124,92,252,.12)}
+.di-name{font-size:13px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.di-time{font-size:10px;color:var(--text2);flex-shrink:0;margin-left:8px}
+.di-empty{text-align:center;color:var(--text2);font-size:12px;padding:20px}
+
+/* Toast */
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--accent3);color:#000;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:100;animation:fadeIn .3s;pointer-events:none}
+
+.typing{display:flex;gap:3px;padding:3px 0}
+.typing span{width:4px;height:4px;background:var(--warn);border-radius:50%;animation:bounce 1.4s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{opacity:.2;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+
+.file-tags{display:none;flex-wrap:wrap;gap:4px;padding:0 10px 6px}
+.file-tag{font-size:10px;padding:3px 8px;border-radius:6px;background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.25);color:var(--accent2)}
+</style>
+</head>
+<body>
+
+<!-- Session Drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-hd">
+    <h2>📋 对话记录</h2>
+    <button class="drawer-new-btn" onclick="createNewSession()">＋ 新对话</button>
+  </div>
+  <div class="drawer-list" id="drawerList"><div class="di-empty">加载中...</div></div>
+</div>
+
+<!-- Top Bar -->
+<header class="topbar">
+  <button class="menu-btn" onclick="openDrawer()">☰</button>
+  <h1>徐振伟智能体</h1>
+  <span class="tag" id="statusTag">智能推荐</span>
+</header>
+
+<!-- Mode Chips -->
+<div class="mode-bar" id="modeBar">
+  <button class="mode-chip on" data-mode="auto" onclick="setMode('auto',this)">🤖 智能推荐</button>
+  <button class="mode-chip" data-mode="" onclick="setMode('',this)">💬 自由对话</button>
+  <button class="mode-chip" data-mode="recipe:深度诊断套餐" onclick="setMode('recipe:深度诊断套餐',this)">📦 深度诊断</button>
+  <button class="mode-chip" data-mode="recipe:农业品牌套餐" onclick="setMode('recipe:农业品牌套餐',this)">📦 农业品牌</button>
+  <button class="mode-chip" data-mode="recipe:创业验证套餐" onclick="setMode('recipe:创业验证套餐',this)">📦 创业验证</button>
+  <button class="mode-chip" data-mode="recipe:农场诊断：把脉开方跟诊" onclick="setMode('recipe:农场诊断：把脉开方跟诊',this)">🏥 农场诊断</button>
+</div>
+
+<!-- Chat -->
+<div class="chat" id="chat">
+  <div class="welcome"><div class="icon">🤖</div><h2>你好，我是徐振伟</h2><p>你的农业咨询伙伴<br>有问题随时聊，我先听听你怎么说</p></div>
+</div>
+
+<!-- File Tags -->
+<div class="file-tags" id="fileTags"></div>
+
+<!-- Bottom Bar -->
+<div class="bottom-bar">
+  <button class="btn-mic-m" id="micBtn" onclick="toggleMic()" title="语音输入">🎤</button>
+  <textarea id="userInput" rows="1" placeholder="输入问题..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+  <button class="btn-send-m" id="sendBtn" onclick="send()">➤</button>
+</div>
+
+<script>
+// ====== State ======
+var mode='auto', streaming=false, currentSessionId=null, isViewingHistory=false, currentTechLabel='';
+var allTechsPromise=fetch('/api/techniques').then(function(r){return r.json()});
+var techNameMap={};
+allTechsPromise.then(function(techs){techs.forEach(function(t){techNameMap[t.id]={name:t.name,desc:t.description||''}})});
+
+// ====== Drawer ======
+function openDrawer(){document.getElementById('drawer').classList.add('open');document.getElementById('drawerOverlay').classList.add('show');loadSessions()}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('drawerOverlay').classList.remove('show')}
+
+// ====== Sessions ======
+function getRelativeTime(ts){
+  if(!ts)return'';var d=new Date(ts),n=new Date(),diff=n-d;
+  var m=Math.floor(diff/60000),h=Math.floor(diff/3600000),day=Math.floor(diff/86400000);
+  if(m<1)return'刚刚';if(m<60)return m+'分钟前';if(h<24)return h+'小时前';if(day<7)return day+'天前';
+  return d.toLocaleDateString('zh-CN');
+}
+
+async function loadSessions(){
+  try{
+    var r=await fetch('/api/sessions?status=ACTIVE&page=0&size=30');
+    var sessions=await r.json();
+    var list=document.getElementById('drawerList');
+    if(!sessions||!sessions.length){list.innerHTML='<div class="di-empty">还没有对话</div>';return}
+    list.innerHTML=sessions.map(function(s){
+      var name=(s.name||'未命名').substring(0,18), time=getRelativeTime(s.lastMessageAt||s.createdAt);
+      return '<div class="drawer-item'+(s.id===currentSessionId?' active':'')+'" onclick="openSession(\''+s.id+'\')"><span class="di-name">'+escapeHtml(name)+'</span><span class="di-time">'+time+'</span></div>';
+    }).join('');
+  }catch(e){}
+}
+
+function createNewSession(){
+  currentSessionId=null;isViewingHistory=false;
+  document.getElementById('chat').innerHTML='<div class="welcome"><div class="icon">🤖</div><h2>你好，我是徐振伟</h2><p>你的农业咨询伙伴<br>有问题随时聊，我先听听你怎么说</p></div>';
+  document.getElementById('userInput').value='';document.getElementById('userInput').placeholder='输入问题...';
+  document.querySelectorAll('.drawer-item').forEach(function(e){e.classList.remove('active')});
+  closeDrawer();document.getElementById('userInput').focus();
+}
+
+async function openSession(sid){
+  try{
+    var dr=await fetch('/api/sessions/'+sid);
+    if(!dr.ok)return;var session=await dr.json();
+    currentSessionId=sid;isViewingHistory=true;
+    var mr=await fetch('/api/sessions/'+sid+'/messages?page=0&size=100');
+    var messages=await mr.json();messages=messages.reverse();
+    var chat=document.getElementById('chat');
+    chat.innerHTML='<div class="session-header"><span>'+escapeHtml(session.name||'未命名')+'</span><span style="font-size:10px;color:var(--text2);margin-left:auto">'+(session.messageCount||0)+'条 · '+new Date(session.createdAt).toLocaleDateString('zh-CN')+'</span></div>';
+    messages.forEach(function(msg){
+      var rc=msg.role==='USER'?'user':(msg.role==='SYSTEM'?'sys':'ai');
+      var rl=msg.role==='USER'?'用户':(msg.role==='SYSTEM'?'系统':'徐振伟');
+      var b='<div class="msg '+rc+'"><div class="b">';
+      if(rl!=='用户')b+='<div style="font-size:10px;color:var(--text2);margin-bottom:3px">'+rl+'</div>';
+      b+=marked.parse(msg.content||'')+'</div></div>';
+      chat.innerHTML+=b;
+    });
+    document.getElementById('userInput').placeholder='接着说...';
+    document.querySelectorAll('.drawer-item').forEach(function(e){e.classList.toggle('active',e.dataset.sid===sid)});
+    closeDrawer();scrollDown();
+  }catch(e){}
+}
+
+// ====== Mode ======
+function setMode(m,el){
+  mode=m;document.querySelectorAll('.mode-chip').forEach(function(e){e.classList.remove('on')});
+  if(el)el.classList.add('on');
+  var tag=document.getElementById('statusTag');
+  if(!m)tag.textContent='自由对话';
+  else if(m==='auto')tag.textContent='智能推荐';
+  else if(m.startsWith('recipe:'))tag.textContent='📦 '+m.substring(7).substring(0,6);
+}
+
+// ====== Send ======
+var pendingFiles=[];
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px'}
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function scrollDown(){var c=document.getElementById('chat');c.scrollTop=c.scrollHeight}
+
+async function send(){
+  var inp=document.getElementById('userInput'), text=inp.value.trim();
+  if((!text&&!pendingFiles.length)||streaming)return;
+  var chat=document.getElementById('chat'), w=chat.querySelector('.welcome');if(w)w.remove();
+  var fullText=text||'请分析文件内容';
+
+  // Auto-create session
+  if(!currentSessionId){
+    try{
+      var r=await fetch('/api/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:text.substring(0,50),topic:text.substring(0,200)})});
+      var s=await r.json();currentSessionId=s.id;
+    }catch(e){}
+  }
+
+  inp.value='';inp.style.height='auto';streaming=true;
+  document.getElementById('sendBtn').disabled=true;
+
+  addMsg('user',text||'(文件分析)');
+
+  if(!mode||mode===''){
+    addMsg('sys','自由对话');
+    var aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
+    try{await streamToMsg('/api/agent/think',{message:fullText,techniqueId:'',deepThink:false,sessionId:currentSessionId},aiMsg)}catch(e){aiMsg.querySelector('.b').innerHTML='<span style="color:#f05050">请求失败</span>'}
+    finish(aiMsg);return;
+  }
+
+  if(mode&&mode!=='auto'){
+    addMsg('sys','执行中...');
+    var aiMsg2=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
+    try{await streamToMsg('/api/agent/think',{message:fullText,techniqueId:mode,deepThink:false,sessionId:currentSessionId},aiMsg2)}catch(e){}
+    finish(aiMsg2);return;
+  }
+
+  // Auto recommend
+  var recData=null;
+  try{var rr=await fetch('/api/recommend/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText})});recData=await rr.json()}catch(e){}
+
+  var recMsg=addMsg('recommend',''), b=recMsg.querySelector('.b'), html='';
+  if(recData&&recData.keywords&&recData.keywords.length)html+='<div class="rec-keywords">'+recData.keywords.map(function(k){return '<span>'+k+'</span>'}).join('')+'</div>';
+  if(recData&&recData.cards){
+    html+='<div class="rec-cards">'+recData.cards.map(function(c,i){return '<div class="rec-card"><span class="rc-id">'+c.id+'</span><div class="rc-info"><div class="rc-name">'+c.name+'</div><div class="rc-reason">'+c.reason||''+'</div></div><span class="rc-pct">'+c.confidence+'%</span></div>'}).join('')+'</div>';
+  }
+  var topId=recData&&recData.cards&&recData.cards.length>0?recData.cards[0].id:'003';
+  html+='<div class="rec-actions"><button class="btn-go" onclick="executeRec(\''+topId+'\',\''+btoa(unescape(encodeURIComponent(fullText)))+'\')">▶ 用推荐执行</button><button class="btn-swap" onclick="retryRec(this)">🔄 换一批</button></div>';
+  b.innerHTML=html;
+  scrollDown();streaming=false;document.getElementById('sendBtn').disabled=false;
+}
+
+async function executeRec(tid,encodedText){
+  var text=decodeURIComponent(escape(atob(encodedText)));
+  document.querySelectorAll('.rec-actions button').forEach(function(b){b.disabled=true});
+  var info=techNameMap[tid];currentTechLabel=info?('['+tid+'] '+info.name):tid;
+  addMsg('sys','使用: '+currentTechLabel);
+  streaming=true;document.getElementById('sendBtn').disabled=true;
+  var aiMsg=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
+  try{await streamToMsg('/api/agent/think',{message:text,techniqueId:tid,deepThink:false,sessionId:currentSessionId},aiMsg)}catch(e){}
+  finish(aiMsg);
+}
+
+var retryCount=0;
+async function retryRec(btn){
+  btn.textContent='换一批中...';btn.disabled=true;
+  var old=document.querySelector('.msg.recommend');if(old)old.remove();
+  retryCount++;document.getElementById('userInput').value='';send();
+}
+
+// ====== SSE Stream ======
+async function streamToMsg(url,body,aiMsg){
+  var resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!resp.ok){aiMsg.querySelector('.b').innerHTML='<span style="color:#f05050">服务器错误</span>';throw new Error('HTTP '+resp.status)}
+  var reader=resp.body.getReader(), dec=new TextDecoder(), buf='', raw='';
+  while(true){
+    var r=await reader.read();if(r.done)break;
+    buf+=dec.decode(r.value,{stream:true});
+    var lines=buf.split('\n');buf=lines.pop()||'';
+    for(var i=0;i<lines.length;i++){
+      var line=lines[i];if(!line.startsWith('data:'))continue;
+      try{var e=JSON.parse(line.slice(5).trim());if(!e||!e.type)continue;
+        if(e.type==='ERROR'||e.type==='error'){aiMsg.querySelector('.b').innerHTML='<span style="color:#f05050">'+ (e.content||e.message||'错误')+'</span>';return}
+        if(e.techniqueId==='tech-label'&&e.content){currentTechLabel=e.content.replace('📌 ','').trim()}
+        if(e.type==='STEP_CONTENT'&&e.content){raw+=e.content;aiMsg.querySelector('.b').innerHTML=marked.parse(raw)}
+        scrollDown();
+      }catch(ex){}
+    }
+  }
+}
+
+function finish(aiMsg){
+  var b=aiMsg.querySelector('.b');
+  if(currentTechLabel){
+    var banner=document.createElement('div');
+    banner.style.cssText='margin-bottom:8px;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.2);color:var(--accent)';
+    banner.textContent='🔧 '+currentTechLabel;b.insertBefore(banner,b.firstChild);currentTechLabel='';
+  }
+  if(!b||!b.textContent.trim())b.innerHTML='[空]';
+  var wrap=document.createElement('div');wrap.className='export-btn-wrap';
+  wrap.innerHTML='<button onclick="doExport(this)">📥 导出 Word</button>';
+  b.appendChild(wrap);
+  streaming=false;document.getElementById('sendBtn').disabled=false;document.getElementById('userInput').focus();
+}
+
+function addMsg(type,html){
+  var chat=document.getElementById('chat'), div=document.createElement('div');
+  div.className='msg '+type;var b=document.createElement('div');b.className='b';b.innerHTML=html;
+  div.appendChild(b);chat.appendChild(div);scrollDown();return div;
+}
+
+// ====== Export ======
+async function doExport(btn){
+  var bubble=btn.closest('.msg').querySelector('.b'), toolbar=bubble.querySelector('.export-btn-wrap');
+  if(toolbar)toolbar.style.display='none';
+  var content=bubble.textContent.trim();if(toolbar)toolbar.style.display='';
+  if(!content)return;
+  var now=new Date(), pad=function(n){return n<10?'0'+n:n};
+  var title='分析报告_'+now.getFullYear()+pad(now.getMonth()+1)+pad(now.getDate())+'_'+pad(now.getHours())+pad(now.getMinutes())+pad(now.getSeconds());
+  var body={content:content,format:'WORD',title:title,techniqueLabel:currentTechLabel||''};
+  if(currentSessionId)body.sessionId=currentSessionId;
+  try{
+    var r=await fetch('/api/export',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error('导出失败');
+    var blob=await r.blob(), a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=title+'.docx';a.click();URL.revokeObjectURL(a.href);
+  }catch(e){}
+}
+
+// ====== Voice ======
+var recognition=null, isRecording=false;
+function initSpeech(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){document.getElementById('micBtn').style.display='none';return}
+  recognition=new SR();recognition.lang='zh-CN';recognition.interimResults=true;recognition.continuous=true;
+  recognition.onresult=function(e){
+    var t='';for(var i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;
+    var inp=document.getElementById('userInput');inp.value=t;autoResize(inp);
+  };
+  recognition.onerror=function(){stopMic()};
+  recognition.onend=function(){if(isRecording)stopMic()};
+}
+function toggleMic(){if(!recognition)initSpeech();if(!recognition)return;isRecording?stopMic():startMic()}
+function startMic(){
+  try{recognition.start();isRecording=true;
+    var b=document.getElementById('micBtn');b.classList.add('recording');b.textContent='🔴';
+  }catch(e){}
+}
+function stopMic(){
+  try{recognition.stop()}catch(e){}isRecording=false;
+  var b=document.getElementById('micBtn');b.classList.remove('recording');b.textContent='🎤';
+  document.getElementById('userInput').focus();
+}
+
+// ====== Init ======
+document.addEventListener('DOMContentLoaded',function(){initSpeech();loadSessions()});
+if(document.readyState!=='loading'){initSpeech();loadSessions()}
+</script>
+</body>
+</html>

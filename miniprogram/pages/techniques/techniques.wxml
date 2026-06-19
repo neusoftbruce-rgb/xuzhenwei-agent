@@ -1,0 +1,25 @@
+<!-- 技法浏览 -->
+<view class="page">
+  <view class="navbar">
+    <text class="title">技法浏览</text>
+  </view>
+
+  <!-- 分类 Tab -->
+  <scroll-view class="mode-bar" scroll-x enhanced show-scrollbar="{{false}}">
+    <view wx:for="{{tabs}}" wx:key="*this" class="mode-chip {{activeTab===index?'on':''}}" bindtap="filterTab" data-idx="{{index}}">{{item}}</view>
+  </scroll-view>
+
+  <!-- 技法列表 -->
+  <scroll-view class="chat" scroll-y enhanced wx:if="{{!loading}}">
+    <view wx:for="{{filtered}}" wx:key="id" class="tech-item" bindtap="selectTechnique" data-tech="{{item}}">
+      <text class="t-id">{{item.id}}</text>
+      <view class="t-name">{{item.name}}</view>
+      <text class="t-desc">{{item.description}}</text>
+    </view>
+    <view wx:if="{{filtered.length===0}}" class="empty">暂无技法</view>
+  </scroll-view>
+
+  <view wx:if="{{loading}}" class="welcome">
+    <text>加载中...</text>
+  </view>
+</view>

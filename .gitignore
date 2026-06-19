@@ -28,3 +28,4 @@ temp/
 # Environment
 .env
 *.local
+nul

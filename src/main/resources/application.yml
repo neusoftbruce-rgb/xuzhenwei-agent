@@ -1,7 +1,12 @@
 server:
   port: 8080
 
+# Spring Security 自动配置（关闭默认登录，由 SecurityConfig 接管）
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
   servlet:
     multipart:
       max-file-size: 50MB
@@ -10,20 +15,22 @@ spring:
   application:
     name: xuzhenwei-agent
 
-  # DeepSeek API 配置 (OpenAI 兼容格式)
+  # 智谱AI API 配置 (OpenAI 兼容格式, v2.5)
+  # 获取API Key: https://open.bigmodel.cn/usercenter/apikeys
   ai:
     openai:
-      api-key: ${DEEPSEEK_API_KEY:your-deepseek-api-key}
-      base-url: https://api.deepseek.com
+      api-key: ${ZHIPU_API_KEY:cd04c8857a604ffd82a12b25e1979bdf.b8Jjm2cb3RZ8SBRA}
+      base-url: https://open.bigmodel.cn/api/paas/v4
       chat:
+        completions-path: /chat/completions   # 智谱不用 /v1 前缀, 覆盖Spring AI默认值
         options:
-          model: deepseek-chat
+          model: glm-5.2            # 智谱5.2 (1M超长上下文)
           temperature: 0.7
           max-tokens: 4096
 
-  # H2 开发数据库
+  # H2 文件数据库（重启不丢数据）
   datasource:
-    url: jdbc:h2:mem:xuzhenwei-agent;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:file:./data/xuzhenwei-agent;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -52,3 +59,28 @@ agent:
   techniques:
     max-turns: 10
     prompt-directory: classpath:/prompts
+  conversation:
+    max-history: 80           # v2.5: 40→80 增加上下文窗口
+    summary-threshold: 20     # v2.5: 超过20条自动摘要旧消息
+  # v2.3: 深度思考配置 (智谱用 glm-4-plus 做深度推理)
+  deep-think:
+    max-reasoning-chars: 2000
+    max-history-inject: 10    # v2.5: 6→10 注入更多上下文
+  # v2.3: 频率限制
+  rate-limit:
+    normal-per-minute: 20
+    deep-per-minute: 10
+  memos:
+    enabled: ${MEMOS_ENABLED:false}
+    base-url: https://neusoftbruce-xuzhenwei.hf.space
+    api-key: ${MEMOS_API_KEY:memos_pat_YDsKyIjJdNTGTMYqk9Ext1TIKtuu2NLJ}
+
+# 微信小程序
+wechat:
+  appid: ${WECHAT_APPID:}
+  secret: ${WECHAT_SECRET:}
+
+# JWT
+jwt:
+  secret: ${JWT_SECRET:xuzhenwei-agent-miniapp-jwt-secret-key-2026}
+  expiration-ms: 2592000000

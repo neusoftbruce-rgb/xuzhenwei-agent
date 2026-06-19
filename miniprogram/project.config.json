@@ -1,0 +1,14 @@
+// 微信小程序项目配置
+{
+  "appid": "wxtest0000000000000",
+  "projectname": "xuzhenwei-agent",
+  "miniprogramRoot": "./",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": false,
+    "checkSiteMap": false
+  }
+}

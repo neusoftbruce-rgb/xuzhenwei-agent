@@ -1,0 +1,38 @@
+# PostgreSQL 生产环境配置
+# 使用方式: java -jar xuzhenwei-agent.jar --spring.profiles.active=prod
+# 或设置环境变量: SPRING_PROFILES_ACTIVE=prod
+
+server:
+  port: ${PORT:8080}
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:xuzhenwei_agent}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:xuzhenwei}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+
+# 启用 Memos 云同步
+agent:
+  memos:
+    enabled: ${MEMOS_ENABLED:false}
+    base-url: ${MEMOS_URL:https://neusoftbruce-xuzhenwei.hf.space}
+    api-key: ${MEMOS_API_KEY:}
+
+logging:
+  level:
+    com.xuzhenwei.agent: INFO
+    org.springframework.ai: WARN

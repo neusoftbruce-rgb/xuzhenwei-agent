@@ -70,6 +70,13 @@ public class RecommendController {
         response.put("explanation", result.explanation());
         response.put("cards", cards);
         response.put("recipe", recipeInfo);
+        // 复杂度元数据（v2.1 新增）
+        response.put("complexity", Map.of(
+                "level", result.complexity().name(),
+                "label", result.complexity().getLabel(),
+                "recommendCount", result.suggestions().size(),
+                "maxAllowed", result.complexity().getMaxRecommend()
+        ));
         return response;
     }
 

@@ -132,7 +132,14 @@ public class DomainAdvisor {
         public List<TechniqueRef> suggestedTechniques = new ArrayList<>();
 
         public List<String> keywords() {
-            return List.of(id, name);
+            // FIX-06: 扩展为 id + name + painPoints前三项，提高匹配覆盖
+            List<String> base = new ArrayList<>();
+            base.add(id);
+            base.add(name);
+            if (painPoints != null) {
+                painPoints.stream().limit(3).forEach(base::add);
+            }
+            return base;
         }
     }
 

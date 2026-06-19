@@ -2,6 +2,8 @@ package com.xuzhenwei.agent.technique;
 
 import com.xuzhenwei.agent.agent.AgentEvent;
 import com.xuzhenwei.agent.agent.ConversationManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import reactor.core.publisher.Flux;
 
@@ -12,6 +14,8 @@ import reactor.core.publisher.Flux;
  * 多步骤流式执行和上下文管理全部由基类统一处理。</p>
  */
 public abstract class BaseTechnique implements Technique {
+
+    private static final Logger log = LoggerFactory.getLogger(BaseTechnique.class);
 
     protected final ChatClient chatClient;
     protected final ConversationManager conversationManager;
@@ -50,7 +54,11 @@ public abstract class BaseTechnique implements Technique {
                             sink.next(AgentEvent.stepComplete(step, getId()));
                             sink.complete();
                         })
-                        .doOnError(sink::error)
+                        .doOnError(e -> {
+                            log.error("步骤{}执行异常", step, e);
+                            sink.next(AgentEvent.error("步骤%d异常: %s".formatted(step, e.getMessage())));
+                            sink.complete();
+                        })
                         .subscribe(chunk -> {
                             fullResponse.append(chunk);
                             sink.next(AgentEvent.stepContent(step, chunk, getId()));

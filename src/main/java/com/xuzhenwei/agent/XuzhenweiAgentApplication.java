@@ -2,6 +2,7 @@ package com.xuzhenwei.agent;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 /**
  * 徐振伟智能体 — 基于 AI 的人机共想创意协作系统
@@ -15,10 +16,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *   <li>一键生成 6W3H 策划书 / 精益画布 / 财务预测 / 视频脚本</li>
  * </ul>
  *
+ * <p>v2.2: 新增会话记忆系统 — 多会话持久化（H2文件/PostgreSQL）+
+ * Memos云端同步 + 继续对话/改进模式</p>
+ *
  * @author Xu Zhenwei
  * @since 2026-06-16
  */
 @SpringBootApplication
+@EnableAsync
 public class XuzhenweiAgentApplication {
 
     public static void main(String[] args) {

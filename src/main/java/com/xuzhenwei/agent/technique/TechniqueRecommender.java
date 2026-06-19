@@ -25,13 +25,16 @@ public class TechniqueRecommender {
     private final TechniqueRegistry registry;
     private final DomainAdvisor domainAdvisor;
     private final ChatClient chatClient;
+    private final RecommendationDecisionEngine decisionEngine;
 
     public TechniqueRecommender(TechniqueRegistry registry,
                                 DomainAdvisor domainAdvisor,
-                                ChatClient chatClient) {
+                                ChatClient chatClient,
+                                RecommendationDecisionEngine decisionEngine) {
         this.registry = registry;
         this.domainAdvisor = domainAdvisor;
         this.chatClient = chatClient;
+        this.decisionEngine = decisionEngine;
     }
 
     /**
@@ -47,42 +50,40 @@ public class TechniqueRecommender {
     public RecommendationResult recommend(String userInput, boolean shuffle) {
         String input = userInput.toLowerCase();
 
+        // 0. 问题复杂度分类（纯本地，0ms）
+        var level = decisionEngine.classify(userInput);
+
         // 1. 先看是否匹配领域知识库中的业务板块
         var domainMatch = domainAdvisor.matchBusiness(userInput);
 
-        // 2. 关键词 → 技法映射（取更多结果，shuffle时随机排序）
+        // 2. 关键词 → 技法映射（动态截断，不再硬编码 limit(9)）
         var matches = keywordMatch(input, shuffle);
 
         // 3. 匹配技法组合配方
         var recipe = matchRecipe(input);
 
-        // 4. 构建推荐结果
+        // 4. 构建推荐结果（携带复杂度元数据）
         if (domainMatch.isPresent()) {
-            // 有业务匹配 → 返回该业务的预配置技法建议 + 可能配方
-            return new RecommendationResult(
-                    matches.isEmpty() ? domainMatch.get().suggestedTechniques.stream()
-                            .map(r -> new TechniqueSuggestion(r.id(), r.reason(), 0.8))
-                            .toList() : matches.stream().map(m -> m.toSuggestion()).toList(),
-                    recipe,
-                    "已识别你的业务：「%s」。推荐以下技法和配方：".formatted(domainMatch.get().name)
-            );
+            var suggestions = matches.isEmpty() ? domainMatch.get().suggestedTechniques.stream()
+                    .map(r -> new TechniqueSuggestion(r.id(), r.reason(), 0.8))
+                    .toList() : matches.stream().map(MatchResult::toSuggestion).toList();
+            return new RecommendationResult(suggestions, recipe,
+                    "已识别你的业务：「%s」。推荐以下技法和配方：".formatted(domainMatch.get().name),
+                    level, suggestions.size());
         }
 
         if (!matches.isEmpty()) {
-            return new RecommendationResult(
-                    matches.stream().map(MatchResult::toSuggestion).toList(),
-                    recipe,
-                    "根据你的问题，推荐以下技法："
-            );
+            var suggestions = matches.stream().map(MatchResult::toSuggestion).toList();
+            return new RecommendationResult(suggestions, recipe,
+                    "根据你的问题，推荐以下技法：", level, suggestions.size());
         }
 
         // 默认：用"半成品激发法"开场
-        return new RecommendationResult(
-                List.of(new TechniqueSuggestion("003", "半成品激发法", 0.6,
-                        "这是最好的开场技法——先让AI出几个不完美的方案，激发你的灵感")),
-                null,
-                "试试「半成品激发法」开场，它能让AI先给你一些不完美的灵感："
-        );
+        var defaultSuggestion = List.of(new TechniqueSuggestion("003", "半成品激发法", 0.6,
+                "这是最好的开场技法——先让AI出几个不完美的方案，激发你的灵感"));
+        return new RecommendationResult(defaultSuggestion, null,
+                "试试「半成品激发法」开场，它能让AI先给你一些不完美的灵感：",
+                level, 1);
     }
 
     /**
@@ -126,8 +127,6 @@ public class TechniqueRecommender {
     }
 
     private List<MatchResult> keywordMatch(String input, boolean shuffle) {
-        List<MatchResult> results = new ArrayList<>();
-
         // 场景关键词 → 最适合的技法
         Map<String, MatchResult> keywordMap = new LinkedHashMap<>();
 
@@ -140,7 +139,7 @@ public class TechniqueRecommender {
 
         // === 需要大量点子 ===
         keywordMap.put("大量创意", match("007", 0.85, "关联词发散100个词，穷尽所有角度"));
-        keywordMap.put("没有灵感", match("009", 0.8, "随机词碰撞法，让AI的100个随机词砸中你的灵感"));
+        keywordMap.put("没有灵感", match("007", 0.8, "关联词发散法（含随机词碰撞），让AI的100个词砸中你的灵感"));
         keywordMap.put("出点子", match("007", 0.8, "关联词发散法是你的点子工厂"));
         keywordMap.put("创新", match("002", 0.85, "10倍目标挑战法，逼出颠覆性创意"));
 
@@ -181,28 +180,120 @@ public class TechniqueRecommender {
         keywordMap.put("定价", match("050", 0.8, "全方位满意度提升法，从价格到体验全优化"));
         keywordMap.put("品牌", match("023", 0.85, "跨界商业模式借鉴，看看隔壁行业怎么玩的"));
 
-        // 逐个匹配
+        // === AI独学50TIPS（v2.1：纳入自动推荐）===
+        keywordMap.put("整理思绪", match("TIPS-01", 0.85, "通过与AI对话，把混乱思绪梳理清楚、分级"));
+        keywordMap.put("太乱了", match("TIPS-01", 0.8, "让AI帮你把杂乱思绪分类整理"));
+        keywordMap.put("摘要", match("TIPS-02", 0.85, "AI快速提取长篇文章核心观点"));
+        keywordMap.put("太长不看", match("TIPS-02", 0.85, "让AI帮你几秒内读完长文"));
+        keywordMap.put("新闻", match("TIPS-03", 0.8, "自动化每日新闻查阅，AI帮你筛选重点"));
+        keywordMap.put("会议纪要", match("TIPS-04", 0.9, "让AI成为会议纪要撰写大师"));
+        keywordMap.put("会议记录", match("TIPS-04", 0.9, "让AI自动整理会议记录"));
+        keywordMap.put("写文档", match("TIPS-06", 0.8, "通过AI批改克服文档写作恐惧"));
+        keywordMap.put("翻译", match("TIPS-07", 0.85, "专业术语转化为易懂语言"));
+        keywordMap.put("做PPT", match("TIPS-08", 0.9, "Word瞬间转PPT，AI帮你排版"));
+        keywordMap.put("PPT", match("TIPS-08", 0.85, "把文字内容快速转成PPT幻灯片"));
+        keywordMap.put("配图", match("TIPS-09", 0.8, "AI生成PPT插图提升资料易懂度"));
+        keywordMap.put("笔记", match("TIPS-10", 0.85, "移动中灵感→结构化笔记"));
+        keywordMap.put("灵感记录", match("TIPS-10", 0.85, "碎片灵感自动整理成结构化笔记"));
+        keywordMap.put("陪练", match("TIPS-11", 0.85, "AI陪练激发创新灵感"));
+        keywordMap.put("学习计划", match("TIPS-14", 0.9, "AI生涯设计师定制学习计划"));
+        keywordMap.put("学习路径", match("TIPS-14", 0.85, "AI为你量身定制学习路线图"));
+        keywordMap.put("任务分解", match("TIPS-15", 0.85, "全自动倒推任务分解(WBS)"));
+        keywordMap.put("拆任务", match("TIPS-15", 0.85, "把大目标自动拆成可执行小任务"));
+        keywordMap.put("坚持不下去", match("TIPS-16", 0.85, "预测学习绊脚石防半途而废"));
+        keywordMap.put("半途而废", match("TIPS-16", 0.85, "AI提前预警你会在哪里放弃"));
+        keywordMap.put("学习风格", match("TIPS-17", 0.8, "学习风格诊断定制策略"));
+        keywordMap.put("有声书", match("TIPS-20", 0.8, "专业书→专属有声书"));
+        keywordMap.put("YouTube", match("TIPS-21", 0.8, "YouTube视频→文本教材"));
+        keywordMap.put("难懂", match("TIPS-22", 0.85, "提取难懂文献要点"));
+        keywordMap.put("看不懂", match("TIPS-22", 0.85, "AI帮你把难懂的文献变简单"));
+        keywordMap.put("刷题", match("TIPS-24", 0.85, "个性化习题集填补知识漏洞"));
+        keywordMap.put("考试", match("TIPS-25", 0.85, "自动分析真题推导合格最短路径"));
+        keywordMap.put("真题", match("TIPS-25", 0.85, "AI分析真题告诉你考什么"));
+        keywordMap.put("专注", match("TIPS-19", 0.85, "召唤计时员AI保持专注"));
+        keywordMap.put("分心", match("TIPS-19", 0.8, "AI帮你对抗分心保持学习节奏"));
+        keywordMap.put("NotebookLM", match("TIPS-23", 0.85, "NotebookLM私有知识库高效学习"));
+        keywordMap.put("WBS", match("TIPS-15", 0.8, "全自动任务分解"));
+        keywordMap.put("晚间", match("TIPS-26", 0.85, "晚间5分钟AI对话巩固学习"));
+        keywordMap.put("复习", match("TIPS-26", 0.8, "每天5分钟AI帮你固化白天学的内容"));
+        keywordMap.put("自己对话", match("TIPS-27", 0.85, "与自己分身对话内化知识"));
+        keywordMap.put("内化", match("TIPS-27", 0.8, "通过AI分身对话把知识变成自己的"));
+        keywordMap.put("练口语", match("TIPS-28", 0.9, "AI外教角色扮演练口语"));
+        keywordMap.put("英语口语", match("TIPS-28", 0.85, "AI当外教陪你练口语"));
+        keywordMap.put("英文邮件", match("TIPS-29", 0.85, "AI撰写商务英文邮件"));
+        keywordMap.put("英文", match("TIPS-29", 0.8, "AI帮你写出地道的商务英文"));
+        keywordMap.put("动力", match("TIPS-30", 0.85, "夸奖型AI教练科学维持学习动力"));
+        keywordMap.put("没动力", match("TIPS-30", 0.85, "AI当你的专属夸奖教练"));
+        keywordMap.put("奖状", match("TIPS-31", 0.8, "自动颁发数字奖状激励进步"));
+        keywordMap.put("游戏化", match("TIPS-32", 0.85, "游戏化学习进度让学习上瘾"));
+        keywordMap.put("打卡", match("TIPS-32", 0.8, "把学习变成游戏闯关"));
+        keywordMap.put("周报", match("TIPS-33", 0.9, "自动生成周报快速PDCA循环"));
+        keywordMap.put("PDCA", match("TIPS-33", 0.85, "AI帮你做每周PDCA复盘"));
+        keywordMap.put("社群", match("TIPS-34", 0.85, "AI社群经理协同成长"));
+        keywordMap.put("概念图", match("TIPS-35", 0.85, "概念图鸟瞰思考全景"));
+        keywordMap.put("思维导图", match("TIPS-35", 0.85, "AI生成概念图帮你理清思路"));
+        keywordMap.put("深度研究", match("TIPS-36", 0.9, "深度研究深挖特定课题"));
+        keywordMap.put("挖深", match("TIPS-36", 0.85, "AI帮你深挖一个课题不浮于表面"));
+        keywordMap.put("对比", match("TIPS-37", 0.85, "多新闻对比可视化事实与观点"));
+        keywordMap.put("多角度看", match("TIPS-37", 0.8, "AI帮你对比多个信息源辨别真伪"));
+        keywordMap.put("思维链", match("TIPS-38", 0.9, "思维链(CoT)获取高精度回答"));
+        keywordMap.put("CoT", match("TIPS-38", 0.9, "用思维链让AI回答更精准"));
+        keywordMap.put("恶魔", match("031", 0.85, "魔鬼审阅法——让AI扮演最挑剔的评审，找出所有漏洞"));
+        keywordMap.put("反驳我", match("031", 0.85, "魔鬼审阅法——让AI故意和你唱反调帮你完善想法"));
+        keywordMap.put("替代方案", match("TIPS-40", 0.9, "替代方案生成器制定最优解"));
+        keywordMap.put("还有别的办法吗", match("TIPS-40", 0.85, "AI生成多个替代方案帮你对比"));
+        keywordMap.put("计划书", match("TIPS-41", 0.9, "AI投资人将构思升华为计划书"));
+        keywordMap.put("BP", match("TIPS-41", 0.85, "AI帮你把想法写成投资人能懂的计划书"));
+        keywordMap.put("投资", match("TIPS-41", 0.8, "AI模拟投资人帮你打磨项目计划书"));
+        keywordMap.put("旧稿", match("TIPS-42", 0.85, "解析旧作把握认知偏差"));
+        keywordMap.put("回顾", match("TIPS-42", 0.8, "AI分析你的旧作品发现你的成长轨迹"));
+        keywordMap.put("语音笔记", match("TIPS-43", 0.9, "灵感语音→调研到框架瞬间输出"));
+        keywordMap.put("说灵感", match("TIPS-43", 0.85, "说出来就行，AI帮你把语音灵感变成文章框架"));
+        keywordMap.put("隐喻", match("TIPS-44", 0.9, "隐喻魔术师拆解难懂概念"));
+        keywordMap.put("打个比方", match("TIPS-44", 0.85, "让AI用比喻把复杂概念变简单"));
+        keywordMap.put("图解", match("TIPS-45", 0.85, "图解直观理解科学抽象概念"));
+        keywordMap.put("画图", match("TIPS-45", 0.8, "AI帮你把抽象概念画成容易理解的图"));
+        keywordMap.put("知识库", match("TIPS-46", 0.9, "构建个人知识库第二大脑"));
+        keywordMap.put("第二大脑", match("TIPS-46", 0.85, "用AI搭建你的个人知识管理系统"));
+        keywordMap.put("职场", match("TIPS-47", 0.85, "借助AI猎头掌握职场竞争力"));
+        keywordMap.put("竞争力", match("TIPS-47", 0.85, "AI帮你分析职场竞争力短板"));
+        keywordMap.put("3年规划", match("TIPS-48", 0.9, "从未来预测倒推3年生涯战略"));
+        keywordMap.put("生涯", match("TIPS-48", 0.85, "用未来倒推法规划你的职业生涯"));
+        keywordMap.put("找书", match("TIPS-49", 0.85, "读书DNA遇见命运之书"));
+        keywordMap.put("推荐书", match("TIPS-49", 0.85, "AI根据你的读书DNA推荐最适合你的书"));
+        keywordMap.put("超输出", match("TIPS-50", 0.9, "体得AI时代超输出思考法"));
+        keywordMap.put("高效输出", match("TIPS-50", 0.85, "掌握AI时代的超高效内容输出方法"));
+
+        // 逐个匹配，按技法ID去重（同ID保留最高分）
+        Map<String, MatchResult> seen = new LinkedHashMap<>();
         for (var entry : keywordMap.entrySet()) {
             if (input.contains(entry.getKey())) {
-                results.add(entry.getValue());
+                var m = entry.getValue();
+                var existing = seen.get(m.techniqueId);
+                if (existing == null || m.score > existing.score) {
+                    seen.put(m.techniqueId, m);
+                }
             }
         }
+        List<MatchResult> results = new ArrayList<>(seen.values());
 
-        // 去重、排序、取前9条
+        // 排序、智能截断（已在上游按技法ID去重）
         var sorted = results.stream()
-                .distinct()
                 .sorted((a, b) -> Double.compare(b.score, a.score))
-                .limit(9)
                 .collect(java.util.stream.Collectors.toList());
 
-        // shuffle时：打乱顺序 + 补充3条未匹配但通用的探索性技法
-        if (shuffle && !sorted.isEmpty()) {
-            java.util.Collections.shuffle(sorted, new java.util.Random());
-            // 添加探索性技法（不重复已有的）
+        // 动态截断：根据问题复杂度确定推荐数量
+        var level = decisionEngine.classify(input);
+        int cutoff = decisionEngine.determineCutoff(sorted, level);
+        var topResults = sorted.stream().limit(cutoff).collect(java.util.stream.Collectors.toList());
+
+        // shuffle时：打乱顺序 + 补充探索性技法（也受复杂度上限约束）
+        if (shuffle && !topResults.isEmpty()) {
+            java.util.Collections.shuffle(topResults, new java.util.Random());
             var explore = List.of(
                 match("003", 0.4, "半成品激发法——换个角度，让AI给你不完美的灵感"),
-                match("009", 0.35, "随机词碰撞法——用随机词砸出意想不到的火花"),
-                match("010", 0.35, "跨界杂交法——把两个不相关的领域强行组合试试"),
+                match("007", 0.35, "关联词+随机词双模发散——换个角度碰撞出新火花"),
+                match("001", 0.35, "跨界碰撞法——从完全不相关的领域借灵感"),
                 match("005", 0.4, "虚拟专家会诊——让8种角色同时帮你想"),
                 match("001", 0.35, "跨界特征联想法——从动物植物身上找灵感"),
                 match("054", 0.3, "最新趋势扫描——看看外面世界在发生什么"),
@@ -211,12 +302,12 @@ public class TechniqueRecommender {
             var rnd = new java.util.Random();
             java.util.Collections.shuffle(explore, rnd);
             for (var ex : explore) {
-                if (sorted.size() >= 9) break;
-                boolean exists = sorted.stream().anyMatch(s -> s.techniqueId.equals(ex.techniqueId));
-                if (!exists) sorted.add(ex);
+                if (topResults.size() >= level.getMaxRecommend()) break;
+                boolean exists = topResults.stream().anyMatch(s -> s.techniqueId.equals(ex.techniqueId));
+                if (!exists) topResults.add(ex);
             }
         }
-        return sorted;
+        return topResults;
     }
 
     /** 匹配技法组合配方 */
@@ -249,7 +340,7 @@ public class TechniqueRecommender {
             new TechniqueRecipe(
                     "内容创作套餐",
                     List.of("选题", "内容", "短视频", "抖音", "文案", "脚本"),
-                    List.of("009", "024", "036"),
+                    List.of("007", "024", "036"),
                     "随机词碰撞找选题 → 一句话展开成大纲 → 30秒脚本直接拍"
             ),
             new TechniqueRecipe(
@@ -287,6 +378,37 @@ public class TechniqueRecommender {
                     List.of("诊断", "根源", "为什么", "根因", "深层", "本质"),
                     List.of("040", "044", "045", "030"),
                     "障碍根因分析 → 烦恼拆解 → 烦恼根源挖掘 → 风险扫描"
+            ),
+            // ---- 5条农业混合工作流 (v4.0) ----
+            new TechniqueRecipe(
+                    "农技推广：发现翻译传播",
+                    List.of("农技", "技术推广", "农技推广", "农业技术", "种植技术"),
+                    List.of("054", "TIPS-44", "TIPS-07", "036"),
+                    "趋势扫描找技术 → 翻译成易懂内容 → 深度输出 → 视频传播"
+            ),
+            new TechniqueRecipe(
+                    "课程开发：策划验证迭代",
+                    List.of("课程开发", "课程设计", "教学", "培训课程", "开发课程"),
+                    List.of("025", "029", "037", "027", "TIPS-33"),
+                    "6W3H策划 → 利益方预演 → 最小验证 → 打分评估 → 解构知识"
+            ),
+            new TechniqueRecipe(
+                    "农场诊断：把脉开方跟诊",
+                    List.of("农场", "种植", "大棚", "温室", "作物", "病害", "土壤"),
+                    List.of("005", "040", "022", "038", "TIPS-19"),
+                    "专家会诊 → 根因分析 → 方案联姻 → 行动计划 → 输出打磨"
+            ),
+            new TechniqueRecipe(
+                    "农业品牌：洞察定位内容",
+                    List.of("农业品牌", "品牌打造", "农产品品牌", "差异化"),
+                    List.of("047", "048", "051", "023", "001"),
+                    "用户调研 → 不满清单 → 核心需求提炼 → 跨界模式 → 跨界联想"
+            ),
+            new TechniqueRecipe(
+                    "学员养成：学练考用闭环",
+                    List.of("学员", "教学管理", "学习路径", "养成", "培训效果"),
+                    List.of("TIPS-14", "TIPS-24", "TIPS-27", "037"),
+                    "目标图像化 → 难度分级 → 输出闭环 → 最小验证"
             )
     );
 
@@ -295,8 +417,18 @@ public class TechniqueRecommender {
     public record RecommendationResult(
             List<TechniqueSuggestion> suggestions,
             TechniqueRecipe recipe,
-            String explanation
-    ) {}
+            String explanation,
+            RecommendationDecisionEngine.ComplexityLevel complexity,
+            int recommendCount
+    ) {
+        public RecommendationResult(List<TechniqueSuggestion> suggestions,
+                                     TechniqueRecipe recipe,
+                                     String explanation) {
+            this(suggestions, recipe, explanation,
+                    RecommendationDecisionEngine.ComplexityLevel.SINGLE_DOMAIN,
+                    suggestions.size());
+        }
+    }
 
     public record TechniqueSuggestion(String techniqueId, String techniqueName, double confidence, String reason) {
         public TechniqueSuggestion(String techniqueId, String techniqueName, double confidence) {
@@ -304,7 +436,9 @@ public class TechniqueRecommender {
         }
     }
 
-    record MatchResult(String techniqueId, String techniqueName, double score, String reason) {
+    record MatchResult(String techniqueId, String techniqueName, double score, String reason)
+            implements RecommendationDecisionEngine.ScoredItem {
+        // score() 由 record 自动生成，匹配 ScoredItem.score()
         TechniqueSuggestion toSuggestion() {
             return new TechniqueSuggestion(techniqueId, techniqueName, score, reason);
         }

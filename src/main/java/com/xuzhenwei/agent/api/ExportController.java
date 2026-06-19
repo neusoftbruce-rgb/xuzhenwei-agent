@@ -1,9 +1,14 @@
 package com.xuzhenwei.agent.api;
 
 import com.xuzhenwei.agent.output.DocumentExportService;
+import com.xuzhenwei.agent.session.SessionService;
+import com.xuzhenwei.agent.session.entity.SessionOutput;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -14,16 +19,20 @@ import java.util.Map;
 @CrossOrigin
 public class ExportController {
 
-    private final DocumentExportService exportService;
+    private static final Logger log = LoggerFactory.getLogger(ExportController.class);
 
-    public ExportController(DocumentExportService exportService) {
+    private final DocumentExportService exportService;
+    private final SessionService sessionService;
+
+    public ExportController(DocumentExportService exportService, SessionService sessionService) {
         this.exportService = exportService;
+        this.sessionService = sessionService;
     }
 
     /**
      * 导出文档
      *
-     * @param request { content, format: "WORD"/"EXCEL"/"PPT", title }
+     * @param request { content, format: "WORD"/"EXCEL"/"PPT", title, techniqueLabel?, sessionId? }
      * @return 文件下载
      */
     @PostMapping
@@ -32,13 +41,30 @@ public class ExportController {
             String content = request.get("content");
             String format = request.getOrDefault("format", "WORD").toUpperCase();
             String title = request.getOrDefault("title", "徐振伟智能体分析报告");
+            String techniqueLabel = request.getOrDefault("techniqueLabel", ""); // v2.1: 技法溯源
+            String sessionId = request.get("sessionId"); // v2.2: 关联会话
 
             if (content == null || content.isBlank()) {
                 return ResponseEntity.badRequest().body("内容为空".getBytes());
             }
 
             DocumentExportService.ExportFormat fmt = DocumentExportService.ExportFormat.valueOf(format);
-            byte[] data = exportService.export(content, fmt, title);
+            byte[] data = exportService.export(content, fmt, title, techniqueLabel);
+
+            // v2.2: 自动保存为会话产出
+            if (sessionId != null && !sessionId.isBlank()) {
+                try {
+                    SessionOutput.OutputFormat outputFormat = switch (fmt) {
+                        case WORD -> SessionOutput.OutputFormat.WORD;
+                        case EXCEL -> SessionOutput.OutputFormat.EXCEL;
+                        case PPT -> SessionOutput.OutputFormat.PPT;
+                    };
+                    sessionService.saveOutput(sessionId, outputFormat, title, content, techniqueLabel);
+                    log.debug("导出已保存为会话产出: session={}, title={}", sessionId, title);
+                } catch (Exception e) {
+                    log.warn("保存会话产出失败（不影响导出）: {}", e.getMessage());
+                }
+            }
 
             String filename;
             MediaType mediaType;
@@ -80,12 +106,10 @@ public class ExportController {
     /** 获取支持的导出格式 */
     @GetMapping("/formats")
     public Map<String, Object> getFormats() {
-        return Map.of(
-                "formats", new String[]{
-                        Map.of("id", "WORD", "name", "Word 文档 (.docx)", "icon", "📄").toString(),
-                        Map.of("id", "EXCEL", "name", "Excel 表格 (.xlsx)", "icon", "📊").toString(),
-                        Map.of("id", "PPT", "name", "PPT 幻灯片 (.pptx)", "icon", "📽️").toString()
-                }
-        );
+        return Map.of("formats", List.of(
+                Map.of("id", "WORD", "name", "Word 文档 (.docx)", "icon", "📄"),
+                Map.of("id", "EXCEL", "name", "Excel 表格 (.xlsx)", "icon", "📊"),
+                Map.of("id", "PPT", "name", "PPT 幻灯片 (.pptx)", "icon", "📽️")
+        ));
     }
 }

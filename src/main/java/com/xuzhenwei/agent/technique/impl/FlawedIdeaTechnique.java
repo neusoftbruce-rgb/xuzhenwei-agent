@@ -97,7 +97,7 @@ public class FlawedIdeaTechnique implements Technique {
                             sink.next(AgentEvent.stepComplete(step, getId()));
                             sink.complete();
                         })
-                        .doOnError(sink::error)
+                        .doOnError(e -> { sink.next(AgentEvent.error("步骤异常: " + e.getMessage())); sink.complete(); })
                         .subscribe(chunk -> {
                             fullResponse.append(chunk);
                             sink.next(AgentEvent.stepContent(step, chunk, getId()));

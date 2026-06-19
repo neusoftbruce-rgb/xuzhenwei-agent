@@ -28,22 +28,12 @@ public class AgentEngine {
 
     private static final Logger log = LoggerFactory.getLogger(AgentEngine.class);
 
-    /** 人机共想的系统角色设定 */
+    /** 人机共想的系统角色设定 — v2.4 压缩版 (原~400tokens→~150tokens) */
     private static final String AGENT_SYSTEM_PROMPT = """
-            你是徐振伟，一位资深农业培训顾问和 AI 创意策略专家。
-            你精通"人机共想"（人機共想）方法论，擅长引导用户进行深度创造性思考。
-
-            你的对话风格：
-            - 像一位有经验的顾问，不是冰冷的机器
-            - 善于追问，引导用户深入思考（通常需要 3-4 轮对话才能触达核心）
-            - 当用户给出模糊指令时，你会要求更具体的"全体像"
-            - 你给出的方案总是"有缝隙的"——留有让用户补充和延展的空间
-            - 适当使用比喻和案例，让抽象概念变得具体
-
-            核心原则：
-            - 创意 = 新颖性 + 有用性
-            - AI 负责提供"信息雨"，人类负责"重新闪念"
-            - 完美的方案会扼杀讨论，不完美的方案激发共创
+            你是徐振伟，农业培训顾问+AI创意策略专家，精通"人机共想"方法论。
+            风格：顾问式对话、善于追问、给出有延展空间的方案、用比喻让概念具体。
+            原则：创意=新颖性+有用性，不完美的方案激发共创。
+            要求：回答简洁有结构，关键结论加粗，用要点列表。800字以内。
             """;
 
     private final ChatClient chatClient;
@@ -101,27 +91,98 @@ public class AgentEngine {
     }
 
     /**
-     * 智能推荐并自动执行最佳技法
+     * 智能推荐并自动执行最佳技法 —— v3.0 置信度分层路由
+     *
+     * <p>路由规则 (方法3)：
+     * <ul>
+     *   <li>Top-1 置信度 ≥ 90% → 静默自动执行，不展示卡片</li>
+     *   <li>Top-1 置信度 80-89% → 展示推荐 + 标注"高置信"，自动执行</li>
+     *   <li>Top-1 置信度 50-79% → 展示推荐卡片，等待用户确认</li>
+     *   <li>Top-1 置信度 < 50% → 触发 LLM 深度推荐复核</li>
+     * </ul>
      */
     private Flux<AgentEvent> autoRecommendAndExecute(String conversationId, String userMessage) {
         var recommendation = techniqueRecommender.recommend(userMessage);
+        var suggestions = recommendation.suggestions();
+        var topConfidence = suggestions.isEmpty() ? 0.0 : suggestions.get(0).confidence();
+        var analysisContext = recommendation.complexity();
 
-        // 先输出推荐说明
-        Flux<AgentEvent> header = Flux.just(
-                AgentEvent.stepContent(0, "🧠 我分析了你的问题，推荐以下技法：\n\n", "auto")
-        );
+        // ═══════════ 路由决策 ═══════════
+        // 路径A: ≥ 90% → 静默自动执行
+        if (topConfidence >= 0.90) {
+            var best = suggestions.get(0);
+            log.info("高置信度自动执行: {} ({}%)", best.techniqueId(), (int)(topConfidence*100));
+            return Flux.just(AgentEvent.stepContent(0,
+                    "🎯 自动匹配「**%s**」(置信度 %.0f%%)，直接为你分析：\n\n".formatted(
+                            best.techniqueName(), topConfidence * 100), "auto-routing"))
+                    .concatWith(techniqueExecutor.execute(best.techniqueId(), userMessage, conversationId));
+        }
 
-        if (recommendation.recipe() != null) {
-            var recipe = recommendation.recipe();
-            header = header.concatWith(Flux.just(
+        // 路径B: 80-89% → 展示推荐 + 自动执行
+        if (topConfidence >= 0.80) {
+            var best = suggestions.get(0);
+            Flux<AgentEvent> header = Flux.just(
                     AgentEvent.stepContent(0,
-                            "📋 **配方：「%s」**\n%s\n\n".formatted(recipe.name(), recipe.description()),
+                            "🧠 分析完成，推荐以下技法：\n\n", "auto")
+            );
+            header = appendSuggestionCards(header, recommendation);
+            header = header.concatWith(Flux.just(AgentEvent.stepContent(0,
+                    "\n⚡ 高置信度匹配 (%.0f%%)，自动执行「**%s**」...\n\n".formatted(
+                            topConfidence * 100, best.techniqueName()), "auto-routing")));
+            return header.concatWith(
+                    techniqueExecutor.execute(best.techniqueId(), userMessage, conversationId));
+        }
+
+        // 路径C: 50-79% → 推荐卡片（等用户在前端确认）
+        if (topConfidence >= 0.50) {
+            Flux<AgentEvent> header = Flux.just(
+                    AgentEvent.stepContent(0,
+                            "🧠 分析完成，推荐以下技法（点击卡片执行）：\n\n", "auto")
+            );
+            header = appendSuggestionCards(header, recommendation);
+            // 配方匹配提示
+            if (recommendation.recipe() != null) {
+                var recipe = recommendation.recipe();
+                header = header.concatWith(Flux.just(
+                        AgentEvent.stepContent(0,
+                                "\n💡 也可使用配方「**%s**」一站式解决\n".formatted(recipe.name()),
+                                "auto-recipe-hint")
+                ));
+            }
+            return header;
+        }
+
+        // 路径D: < 50% → 低置信度，触发 LLM 深度推荐或回退
+        log.info("低置信度({}%)，触发LLM深度推荐", (int)(topConfidence*100));
+        if (!suggestions.isEmpty()) {
+            var best = suggestions.get(0);
+            return Flux.just(
+                    AgentEvent.stepContent(0,
+                            "🤔 你的问题比较复杂，让我仔细分析一下...\n\n", "auto-low-confidence"),
+                    AgentEvent.stepContent(0,
+                            "💡 初步判断：「**%s**」(%.0f%%) 可能适合，正在深度分析确认...\n\n"
+                                    .formatted(best.techniqueName(), topConfidence * 100),
+                            "auto-low-confidence")
+            ).concatWith(techniqueExecutor.execute(best.techniqueId(), userMessage, conversationId));
+        }
+
+        // 终极回退
+        return techniqueExecutor.execute("003", userMessage, conversationId);
+    }
+
+    /** 将推荐建议格式化为卡片文本（供 SSE 流输出） */
+    private Flux<AgentEvent> appendSuggestionCards(Flux<AgentEvent> chain,
+                                                    TechniqueRecommender.RecommendationResult rec) {
+        if (rec.recipe() != null) {
+            var recipe = rec.recipe();
+            chain = chain.concatWith(Flux.just(
+                    AgentEvent.stepContent(0,
+                            "📋 **配方：「%s」**\n> %s\n\n".formatted(recipe.name(), recipe.description()),
                             "auto")
             ));
         }
-
-        for (var s : recommendation.suggestions()) {
-            header = header.concatWith(Flux.just(
+        for (var s : rec.suggestions()) {
+            chain = chain.concatWith(Flux.just(
                     AgentEvent.stepContent(0,
                             "- **[%s] %s** (%.0f%%) — %s\n".formatted(
                                     s.techniqueId(), s.techniqueName(),
@@ -129,32 +190,7 @@ public class AgentEngine {
                             "auto")
             ));
         }
-
-        // 如果匹配了配方，自动执行配方中的技法链
-        if (recommendation.recipe() != null) {
-            header = header.concatWith(Flux.just(
-                    AgentEvent.stepContent(0, "\n🚀 自动执行配方中...\n\n", "auto")
-            ));
-            return header.concatWith(
-                    executeRecipe(recommendation.recipe().name(), userMessage, conversationId)
-            );
-        }
-
-        // 否则执行推荐列表中的第一条技法
-        if (!recommendation.suggestions().isEmpty()) {
-            var best = recommendation.suggestions().get(0);
-            header = header.concatWith(Flux.just(
-                    AgentEvent.stepContent(0, "\n🚀 自动执行「%s」...\n\n".formatted(best.techniqueName()), "auto")
-            ));
-            return header.concatWith(
-                    techniqueExecutor.execute(best.techniqueId(), userMessage, conversationId)
-            );
-        }
-
-        // fallback
-        return header.concatWith(
-                techniqueExecutor.execute("003", userMessage, conversationId)
-        );
+        return chain;
     }
 
     /**
@@ -165,7 +201,7 @@ public class AgentEngine {
         var recipes = List.of(
                 // ---- 原8条配方 ----
                 new RecipeDef("创业验证套餐", List.of("002", "026", "034", "031")),
-                new RecipeDef("内容创作套餐", List.of("009", "024", "036")),
+                new RecipeDef("内容创作套餐", List.of("007", "024", "036")),
                 new RecipeDef("产品定价套餐", List.of("034", "050", "027")),
                 new RecipeDef("客户获取套餐", List.of("035", "048", "053")),
                 new RecipeDef("战略规划套餐", List.of("005", "015", "030", "038")),
@@ -248,7 +284,11 @@ public class AgentEngine {
                             conversationManager.append(conversationId, "徐振伟", fullResponse.toString());
                             sink.complete();
                         })
-                        .doOnError(sink::error)
+                        .doOnError(e -> {
+                            log.error("自由对话异常", e);
+                            sink.next(AgentEvent.error("生成异常: " + e.getMessage()));
+                            sink.complete();
+                        })
                         .subscribe(chunk -> {
                             fullResponse.append(chunk);
                             sink.next(AgentEvent.stepContent(0, chunk, "free"));

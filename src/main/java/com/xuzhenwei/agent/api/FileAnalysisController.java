@@ -191,7 +191,8 @@ public class FileAnalysisController {
             // 推理过程
             sink.next(AgentEvent.stepContent(2, "### 📊 分析推理\n\n", "deepthink-reasoning"));
             String reasoning = result.reasoning();
-            if (reasoning != null && reasoning.length() > 2500) {
+            if (reasoning == null) reasoning = "(无推理内容)";
+            else if (reasoning.length() > 2500) {
                 reasoning = reasoning.substring(0, 2500) + "\n\n...(推理较长已截断)";
             }
             for (String line : reasoning.split("\n")) {
@@ -202,7 +203,9 @@ public class FileAnalysisController {
             // 最终答案
             sink.next(AgentEvent.stepStart(3, "📝 生成分析报告...", "deepthink-final"));
             sink.next(AgentEvent.stepContent(3, "\n### 🎯 分析报告\n\n", "deepthink-final"));
-            for (String line : result.finalAnswer().split("\n")) {
+            String finalAnswer = result.finalAnswer();
+            if (finalAnswer == null) finalAnswer = "(无分析结果)";
+            for (String line : finalAnswer.split("\n")) {
                 sink.next(AgentEvent.stepContent(3, line + "\n", "deepthink-final"));
             }
             sink.next(AgentEvent.stepComplete(3, "deepthink-final"));

@@ -1,0 +1,28 @@
+{
+  "pages": [
+    "pages/chat/chat",
+    "pages/techniques/techniques",
+    "pages/profile/profile"
+  ],
+  "window": {
+    "navigationStyle": "custom",
+    "backgroundTextStyle": "dark",
+    "backgroundColor": "#0f0f1a"
+  },
+  "tabBar": {
+    "color": "#7c7ca0",
+    "selectedColor": "#7c5cfc",
+    "backgroundColor": "#18182a",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/chat/chat", "text": "💬 对话" },
+      { "pagePath": "pages/techniques/techniques", "text": "📚 技法" },
+      { "pagePath": "pages/profile/profile", "text": "👤 我的" }
+    ]
+  },
+  "plugins": {
+    "WechatSI": { "version": "0.3.5", "provider": "wx069ba97219f66d99" }
+  },
+  "requiredBackgroundModes": ["audio"],
+  "sitemapLocation": "sitemap.json"
+}
