@@ -16,10 +16,14 @@ public class RecommendController {
 
     private final TechniqueRecommender recommender;
     private final TechniqueRegistry registry;
+    private final RecommendationDecisionEngine decisionEngine;
 
-    public RecommendController(TechniqueRecommender recommender, TechniqueRegistry registry) {
+    public RecommendController(TechniqueRecommender recommender,
+                                TechniqueRegistry registry,
+                                RecommendationDecisionEngine decisionEngine) {
         this.recommender = recommender;
         this.registry = registry;
+        this.decisionEngine = decisionEngine;
     }
 
     /**
@@ -76,6 +80,12 @@ public class RecommendController {
                 "label", result.complexity().getLabel(),
                 "recommendCount", result.suggestions().size(),
                 "maxAllowed", result.complexity().getMaxRecommend()
+        ));
+        // v3.0 方法1: 意图分类
+        var analysis = decisionEngine.analyze(message);
+        response.put("intent", Map.of(
+                "type", analysis.intent().name(),
+                "label", analysis.intent().getLabel()
         ));
         return response;
     }

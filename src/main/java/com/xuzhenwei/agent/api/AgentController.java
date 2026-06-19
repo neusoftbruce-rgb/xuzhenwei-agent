@@ -43,6 +43,8 @@ public class AgentController {
     private final ConsultingAnalysisService consultingService;
     private final BatchAnalysisService batchAnalysisService;
     private final DocumentIntakeService documentIntakeService;
+    private final FollowupService followupService;
+    private final QueryDecompositionService decompositionService;
 
     public AgentController(AgentEngine agentEngine,
                            DeepThinkService deepThinkService,
@@ -56,7 +58,9 @@ public class AgentController {
                            ErrorClassifier errorClassifier,
                            ConsultingAnalysisService consultingService,
                            BatchAnalysisService batchAnalysisService,
-                           DocumentIntakeService documentIntakeService) {
+                           DocumentIntakeService documentIntakeService,
+                           FollowupService followupService,
+                           QueryDecompositionService decompositionService) {
         this.agentEngine = agentEngine;
         this.deepThinkService = deepThinkService;
         this.domainAdvisor = domainAdvisor;
@@ -70,6 +74,8 @@ public class AgentController {
         this.consultingService = consultingService;
         this.batchAnalysisService = batchAnalysisService;
         this.documentIntakeService = documentIntakeService;
+        this.followupService = followupService;
+        this.decompositionService = decompositionService;
     }
 
     @PostMapping(value = "/think", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -361,6 +367,74 @@ public class AgentController {
         String msg = icon + " " + classified.userFriendlyMessage();
         log.warn("{} | 分类={} | 详情={}", msg, classified.type(), classified.technicalDetail());
         return AgentEvent.error(msg);
+    }
+
+    /**
+     * v3.0 方法7: 智能追问 — 根据对话上下文生成追问建议
+     */
+    @PostMapping("/followup")
+    public Map<String, Object> followup(@RequestBody Map<String, String> body) {
+        String question = body.getOrDefault("question", "");
+        String response = body.getOrDefault("response", "");
+
+        var suggestions = followupService.generate(question, response);
+
+        List<Map<String, String>> qs = new ArrayList<>();
+        for (var fq : suggestions.questions()) {
+            qs.add(Map.of("text", fq.text(), "action", fq.quickAction()));
+        }
+
+        return Map.of(
+                "questions", qs,
+                "fromModel", suggestions.fromModel()
+        );
+    }
+
+    /**
+     * v3.0 方法4: 查询拆解 — 判断是否需要拆解+执行拆解
+     */
+    @PostMapping("/decompose")
+    public Map<String, Object> decompose(@RequestBody Map<String, String> body) {
+        String message = body.getOrDefault("message", "");
+        var result = decompositionService.analyze(message);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("shouldDecompose", result.shouldDecompose());
+        response.put("reasoning", result.reasoning());
+
+        if (result.hasSubQuestions()) {
+            List<Map<String, Object>> subs = new ArrayList<>();
+            for (var sq : result.subQuestions()) {
+                Map<String, Object> sub = new LinkedHashMap<>();
+                sub.put("index", sq.index());
+                sub.put("question", sq.question());
+                sub.put("focus", sq.focus());
+                subs.add(sub);
+            }
+            response.put("subQuestions", subs);
+        }
+
+        return response;
+    }
+
+    /**
+     * v3.0 方法9: 检查是否有相似问题的缓存
+     */
+    @PostMapping("/cache-check")
+    public Map<String, Object> cacheCheck(@RequestBody Map<String, String> body) {
+        String message = body.getOrDefault("message", "");
+        var cached = conversationManager.findSimilar(message);
+
+        if (cached != null && System.currentTimeMillis() - cached.timestamp() < 30 * 60 * 1000) {
+            return Map.of(
+                    "hit", true,
+                    "originalQuestion", cached.userQuestion(),
+                    "techniqueId", cached.techniqueId() != null ? cached.techniqueId() : "",
+                    "techniqueName", cached.techniqueName() != null ? cached.techniqueName() : "",
+                    "summary", cached.responseSummary()
+            );
+        }
+        return Map.of("hit", false);
     }
 
     /**
