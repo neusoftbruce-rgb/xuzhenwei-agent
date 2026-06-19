@@ -50,32 +50,50 @@ public class TechniqueRecommender {
     public RecommendationResult recommend(String userInput, boolean shuffle) {
         String input = userInput.toLowerCase();
 
-        // 0. 问题复杂度分类（纯本地，0ms）
-        var level = decisionEngine.classify(userInput);
+        // 0. 问题复杂度 + 意图分类（方法1，纯本地，0ms）
+        var analysis = decisionEngine.analyze(userInput);
 
         // 1. 先看是否匹配领域知识库中的业务板块
         var domainMatch = domainAdvisor.matchBusiness(userInput);
 
-        // 2. 关键词 → 技法映射（动态截断，不再硬编码 limit(9)）
+        // 2. 关键词 → 技法映射
         var matches = keywordMatch(input, shuffle);
 
-        // 3. 匹配技法组合配方
+        // 3. 语义检索增强（方法2，仅当关键词匹配结果 < 3 条时触发）
+        if (matches.size() < 3 && matches.size() < analysis.complexity().getMinRecommend()) {
+            var semanticMatches = semanticMatch(userInput, matches);
+            if (!semanticMatches.isEmpty()) {
+                // 合并去重
+                Set<String> existingIds = new java.util.HashSet<>();
+                matches.forEach(m -> existingIds.add(m.techniqueId));
+                for (var sm : semanticMatches) {
+                    if (!existingIds.contains(sm.techniqueId)) {
+                        matches.add(sm);
+                        existingIds.add(sm.techniqueId);
+                    }
+                }
+                // 重排序
+                matches.sort((a, b) -> Double.compare(b.score, a.score));
+            }
+        }
+
+        // 4. 匹配技法组合配方
         var recipe = matchRecipe(input);
 
-        // 4. 构建推荐结果（携带复杂度元数据）
+        // 5. 构建推荐结果（携带复杂度元数据）
         if (domainMatch.isPresent()) {
             var suggestions = matches.isEmpty() ? domainMatch.get().suggestedTechniques.stream()
                     .map(r -> new TechniqueSuggestion(r.id(), r.reason(), 0.8))
                     .toList() : matches.stream().map(MatchResult::toSuggestion).toList();
             return new RecommendationResult(suggestions, recipe,
                     "已识别你的业务：「%s」。推荐以下技法和配方：".formatted(domainMatch.get().name),
-                    level, suggestions.size());
+                    analysis.complexity(), suggestions.size());
         }
 
         if (!matches.isEmpty()) {
             var suggestions = matches.stream().map(MatchResult::toSuggestion).toList();
             return new RecommendationResult(suggestions, recipe,
-                    "根据你的问题，推荐以下技法：", level, suggestions.size());
+                    "根据你的问题，推荐以下技法：", analysis.complexity(), suggestions.size());
         }
 
         // 默认：用"半成品激发法"开场
@@ -83,7 +101,96 @@ public class TechniqueRecommender {
                 "这是最好的开场技法——先让AI出几个不完美的方案，激发你的灵感"));
         return new RecommendationResult(defaultSuggestion, null,
                 "试试「半成品激发法」开场，它能让AI先给你一些不完美的灵感：",
-                level, 1);
+                analysis.complexity(), 1);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 方法2: 语义向量检索（用智谱5.2做轻量语义匹配）
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * 用智谱轻量模型做语义匹配 —— 当关键词匹配结果不够时，
+     * 让 LLM 理解"咋搞钱"="赚钱"，找出关键词遗漏的技法。
+     *
+     * <p>Token 消耗：~200 tokens/次（只发技法名+描述，不发全量 Prompt）</p>
+     */
+    private List<MatchResult> semanticMatch(String userInput, List<MatchResult> existingMatches) {
+        try {
+            // 收集已匹配的技法ID，避免推荐重复
+            Set<String> existingIds = new java.util.HashSet<>();
+            existingMatches.forEach(m -> existingIds.add(m.techniqueId));
+
+            // 构建候选技法列表（只取40条，控制Prompt长度）
+            var candidates = registry.getAll().stream()
+                    .filter(t -> !existingIds.contains(t.getId()))
+                    .limit(40)
+                    .toList();
+
+            if (candidates.isEmpty()) return List.of();
+
+            StringBuilder techList = new StringBuilder();
+            for (var t : candidates) {
+                techList.append("[%s] %s — %s\n".formatted(t.getId(), t.getName(), t.getDescription()));
+            }
+
+            String prompt = """
+                    用户问题：「%s」
+
+                    以下是一些分析技法，请从中选出与用户问题最相关的2-3条。
+                    只看语义相关度，不要选已经在用的。
+
+                    候选技法：
+                    %s
+
+                    请严格按以下JSON格式回复（不要其他内容）：
+                    {"matches":[{"id":"001","score":0.85,"reason":"一句话理由"}]}
+
+                    score范围0-1，表示语义相关度。
+                    """.formatted(userInput, techList.toString());
+
+            String response = chatClient.prompt()
+                    .user(prompt)
+                    .options(org.springframework.ai.openai.OpenAiChatOptions.builder()
+                            .model("glm-5.2")
+                            .maxTokens(200)
+                            .temperature(0.1)
+                            .build())
+                    .call()
+                    .content();
+
+            // 解析 JSON 响应
+            return parseSemanticResponse(response);
+
+        } catch (Exception e) {
+            log.warn("语义匹配失败，回退纯关键词: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    /** 解析智谱返回的语义匹配 JSON */
+    private List<MatchResult> parseSemanticResponse(String json) {
+        List<MatchResult> results = new ArrayList<>();
+        try {
+            // 提取 matches 数组中的每个对象
+            var pattern = java.util.regex.Pattern.compile(
+                    "\\{\\s*\"id\"\\s*:\\s*\"([^\"]+)\"\\s*,\\s*\"score\"\\s*:\\s*([0-9.]+)\\s*,\\s*\"reason\"\\s*:\\s*\"([^\"]+)\"\\s*\\}");
+            var matcher = pattern.matcher(json);
+            while (matcher.find()) {
+                String id = matcher.group(1);
+                double score = Double.parseDouble(matcher.group(2));
+                String reason = matcher.group(3);
+                var tech = registry.get(id);
+                if (tech.isPresent()) {
+                    results.add(new MatchResult(id, tech.get().getName(), score,
+                            "🔮 " + reason));
+                }
+            }
+            results.sort((a, b) -> Double.compare(b.score, a.score));
+            log.debug("语义匹配结果: {} 条", results.size());
+        } catch (Exception e) {
+            log.warn("解析语义匹配响应失败: {}", e.getMessage());
+        }
+        return results;
     }
 
     /**
@@ -287,25 +394,76 @@ public class TechniqueRecommender {
         int cutoff = decisionEngine.determineCutoff(sorted, level);
         var topResults = sorted.stream().limit(cutoff).collect(java.util.stream.Collectors.toList());
 
-        // shuffle时：打乱顺序 + 补充探索性技法（也受复杂度上限约束）
+        // ═══════════════════════════════════════════════════════════
+        // 方法5: 探索性推荐 — shuffle时跨分类强制抽卡 + 惊喜技法
+        // ═══════════════════════════════════════════════════════════
         if (shuffle && !topResults.isEmpty()) {
+            // 打乱顺序
             java.util.Collections.shuffle(topResults, new java.util.Random());
-            var explore = List.of(
-                match("003", 0.4, "半成品激发法——换个角度，让AI给你不完美的灵感"),
-                match("007", 0.35, "关联词+随机词双模发散——换个角度碰撞出新火花"),
-                match("001", 0.35, "跨界碰撞法——从完全不相关的领域借灵感"),
-                match("005", 0.4, "虚拟专家会诊——让8种角色同时帮你想"),
-                match("001", 0.35, "跨界特征联想法——从动物植物身上找灵感"),
-                match("054", 0.3, "最新趋势扫描——看看外面世界在发生什么"),
-                match("046", 0.3, "烦恼抽象化——把具体烦恼变成通用问题")
-            );
-            var rnd = new java.util.Random();
-            java.util.Collections.shuffle(explore, rnd);
-            for (var ex : explore) {
-                if (topResults.size() >= level.getMaxRecommend()) break;
-                boolean exists = topResults.stream().anyMatch(s -> s.techniqueId.equals(ex.techniqueId));
-                if (!exists) topResults.add(ex);
+
+            // 按分类分组（保留最强的1-2条匹配，其余从不同分类补）
+            Map<String, List<MatchResult>> byCategory = new LinkedHashMap<>();
+            for (var r : topResults) {
+                var tech = registry.get(r.techniqueId);
+                String cat = tech.map(t -> t.getCategory()).orElse("其他");
+                byCategory.computeIfAbsent(cat, k -> new ArrayList<>()).add(r);
             }
+
+            // 策略：保留原分类中分数最高的 + 跨分类强制多样化
+            List<MatchResult> diverse = new ArrayList<>();
+            Set<String> usedCategories = new LinkedHashSet<>();
+            int maxKeep = level.getMaxRecommend();
+
+            // 第一步：每个分类保留 Top-1
+            for (var entry : byCategory.entrySet()) {
+                if (diverse.size() >= maxKeep) break;
+                var best = entry.getValue().stream()
+                        .max((a, b) -> Double.compare(a.score, b.score))
+                        .orElse(null);
+                if (best != null) {
+                    diverse.add(best);
+                    usedCategories.add(entry.getKey());
+                }
+            }
+
+            // 第二步：如果还不够，从未覆盖的分类中补"惊喜技法"
+            if (diverse.size() < maxKeep) {
+                // 所有可用的"惊喜探索"技法（跨分类）
+                var surprisePool = List.of(
+                        new SurprisePick("001", "跨界特征联想法", 0.45, "从完全不相关的领域借灵感"),
+                        new SurprisePick("005", "虚拟专家会诊", 0.50, "8种角色同时帮你想"),
+                        new SurprisePick("007", "关联词发散法", 0.40, "100个词穷尽所有角度"),
+                        new SurprisePick("015", "10年倒推法", 0.35, "从未来回看今天的决策"),
+                        new SurprisePick("030", "风险扫描法", 0.35, "提前排雷，防患未然"),
+                        new SurprisePick("054", "最新趋势扫描", 0.30, "看看外面世界在发生什么"),
+                        new SurprisePick("044", "烦恼拆解法", 0.35, "把大烦恼拆成小问题"),
+                        new SurprisePick("042", "案例调研法", 0.30, "看看别人怎么做的")
+                );
+                var rnd = new java.util.Random();
+                var shuffledSurprise = new ArrayList<>(surprisePool);
+                java.util.Collections.shuffle(shuffledSurprise, rnd);
+
+                for (var sp : shuffledSurprise) {
+                    if (diverse.size() >= maxKeep) break;
+                    // 跳过已存在的技法
+                    boolean already = diverse.stream().anyMatch(m -> m.techniqueId.equals(sp.id));
+                    if (already) continue;
+                    // 检查分类多样性：如果该技法所属分类已覆盖，跳过
+                    var tech = registry.get(sp.id);
+                    String cat = tech.map(t -> t.getCategory()).orElse("");
+                    if (usedCategories.contains(cat) && diverse.size() >= 2) continue;
+
+                    MatchResult surprise = new MatchResult(sp.id, sp.name, sp.baseScore,
+                            "🎲 " + sp.reason);
+                    diverse.add(surprise);
+                    usedCategories.add(cat);
+                }
+            }
+
+            topResults = diverse.stream()
+                    .sorted((a, b) -> Double.compare(b.score, a.score))
+                    .limit(maxKeep)
+                    .collect(java.util.stream.Collectors.toList());
         }
         return topResults;
     }
@@ -450,4 +608,7 @@ public class TechniqueRecommender {
             List<String> techniqueIds,
             String description
     ) {}
+
+    /** 探索性推荐——惊喜技法 */
+    private record SurprisePick(String id, String name, double baseScore, String reason) {}
 }

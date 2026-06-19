@@ -42,19 +42,22 @@ public class AgentEngine {
     private final TechniqueExecutor techniqueExecutor;
     private final TechniqueRecommender techniqueRecommender;
     private final DomainAdvisor domainAdvisor;
+    private final RecommendationDecisionEngine decisionEngine;
 
     public AgentEngine(ChatClient chatClient,
                        ConversationManager conversationManager,
                        TechniqueRegistry techniqueRegistry,
                        TechniqueExecutor techniqueExecutor,
                        TechniqueRecommender techniqueRecommender,
-                       DomainAdvisor domainAdvisor) {
+                       DomainAdvisor domainAdvisor,
+                       RecommendationDecisionEngine decisionEngine) {
         this.chatClient = chatClient;
         this.conversationManager = conversationManager;
         this.techniqueRegistry = techniqueRegistry;
         this.techniqueExecutor = techniqueExecutor;
         this.techniqueRecommender = techniqueRecommender;
         this.domainAdvisor = domainAdvisor;
+        this.decisionEngine = decisionEngine;
     }
 
     /**
@@ -70,6 +73,9 @@ public class AgentEngine {
         // 保存用户消息到会话历史
         conversationManager.append(conversationId, "用户", userMessage);
 
+        // 预分析复杂度（方法1+方法6 共用）
+        var analysis = decisionEngine.analyze(userMessage);
+
         // ---- 智能自动模式 ----
         if ("auto".equals(techniqueId)) {
             return autoRecommendAndExecute(conversationId, userMessage);
@@ -78,12 +84,16 @@ public class AgentEngine {
         // ---- 配方模式（技法组合链） ----
         if (techniqueId != null && techniqueId.startsWith("recipe:")) {
             String recipeName = techniqueId.substring(7);
-            return executeRecipe(recipeName, userMessage, conversationId);
+            return withVerification(
+                    executeRecipe(recipeName, userMessage, conversationId),
+                    userMessage, conversationId, analysis.complexity());
         }
 
         // ---- 指定技法模式 ----
         if (techniqueId != null && !techniqueId.isBlank()) {
-            return techniqueExecutor.execute(techniqueId, userMessage, conversationId);
+            return withVerification(
+                    techniqueExecutor.execute(techniqueId, userMessage, conversationId),
+                    userMessage, conversationId, analysis.complexity());
         }
 
         // ---- 自由对话模式 ----
@@ -303,6 +313,46 @@ public class AgentEngine {
     }
 
     private record RecipeDef(String name, List<String> techniqueIds) {}
+
+    // ═══════════════════════════════════════════════════════════
+    // 方法6: 结果交叉验证
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * 在技法执行后追加轻量验证步骤。
+     *
+     * <p>触发条件：复杂度 ≥ COMPLEX_MULTI 且不是自由对话模式。</p>
+     * <p>验证技法：默认用 031（魔鬼审阅），如果输出涉及财务则用 027（可行性打分）。</p>
+     */
+    private Flux<AgentEvent> withVerification(Flux<AgentEvent> mainFlux,
+                                               String userMessage,
+                                               String conversationId,
+                                               RecommendationDecisionEngine.ComplexityLevel complexity) {
+        if (complexity == null
+                || complexity == RecommendationDecisionEngine.ComplexityLevel.SIMPLE_FACTUAL
+                || complexity == RecommendationDecisionEngine.ComplexityLevel.SINGLE_DOMAIN) {
+            return mainFlux; // 简单问题跳过验证
+        }
+
+        // 选择验证技法：财务相关用027，否则用031
+        String verifyTechId = userMessage.toLowerCase().matches(".*(钱|财务|成本|定价|收入|利润|赚).*")
+                ? "027" : "031";
+
+        var verifyTech = techniqueRegistry.get(verifyTechId);
+        if (verifyTech.isEmpty()) return mainFlux;
+
+        return mainFlux.concatWith(
+                Flux.just(AgentEvent.stepContent(0,
+                        "\n\n---\n### 🔍 自动验证 (%s)\n\n".formatted(verifyTech.get().getName()),
+                        "verify"))
+                        .concatWith(techniqueExecutor.execute(verifyTechId,
+                                "请对以上分析结果进行审阅，指出：\n1. 逻辑漏洞或未考虑的因素\n2. 可以做得更好的地方\n3. 一句话改进建议\n\n原始问题：" + userMessage,
+                                conversationId + "_verify"))
+                        .concatWith(Flux.just(AgentEvent.stepContent(0,
+                                "\n> *🤖 自动交叉验证完成 — 方法031/027*".formatted(),
+                                "verify")))
+        );
+    }
 
     /**
      * 获取可用技法简要信息
