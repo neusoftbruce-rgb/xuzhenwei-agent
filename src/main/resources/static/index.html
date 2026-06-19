@@ -520,6 +520,17 @@ async function send(){
     finish(aiMsg);return;
   }
 
+  // ═══════════ v3.0 方法9: 缓存检查 ═══════════
+  var cacheHit=null;
+  try{
+    var cr=await fetch('/api/agent/cache-check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:fullText})});
+    var cd=await cr.json();
+    if(cd.hit){
+      cacheHit=cd;
+      addMsg('sys','📋 之前分析过类似问题「'+cd.originalQuestion+'」(技法: '+cd.techniqueName+')，要复用结果吗？<button onclick="document.getElementById(\'userInput\').value=\'继续分析: '+cd.originalQuestion.replace(/'/g,"\\'")+'\';send()" style="margin-left:6px;padding:2px 10px;border-radius:10px;border:1px solid var(--accent3);background:transparent;color:var(--accent3);cursor:pointer;font-size:10px">✅ 复用</button>');
+    }
+  }catch(e){}
+
   // ═══════════ v3.0: 透明推荐流程（置信度路由+意图显示+智能追问）═══════════
   let recData;
   try{

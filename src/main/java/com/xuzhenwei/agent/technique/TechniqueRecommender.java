@@ -26,15 +26,18 @@ public class TechniqueRecommender {
     private final DomainAdvisor domainAdvisor;
     private final ChatClient chatClient;
     private final RecommendationDecisionEngine decisionEngine;
+    private final TechniqueRelations techniqueRelations;
 
     public TechniqueRecommender(TechniqueRegistry registry,
                                 DomainAdvisor domainAdvisor,
                                 ChatClient chatClient,
-                                RecommendationDecisionEngine decisionEngine) {
+                                RecommendationDecisionEngine decisionEngine,
+                                TechniqueRelations techniqueRelations) {
         this.registry = registry;
         this.domainAdvisor = domainAdvisor;
         this.chatClient = chatClient;
         this.decisionEngine = decisionEngine;
+        this.techniqueRelations = techniqueRelations;
     }
 
     /**
@@ -77,7 +80,24 @@ public class TechniqueRecommender {
             }
         }
 
-        // 4. 匹配技法组合配方
+        // 4. 技法关系图谱扩展（方法8）：为Top-1匹配结果追加后继技法
+        if (!matches.isEmpty()) {
+            var topId = matches.get(0).techniqueId;
+            var relatedSuggestions = techniqueRelations.suggestPath(topId, registry);
+            if (!relatedSuggestions.isEmpty()) {
+                Set<String> existingIds = new java.util.HashSet<>();
+                matches.forEach(m -> existingIds.add(m.techniqueId));
+                for (var rs : relatedSuggestions) {
+                    if (!existingIds.contains(rs.techniqueId()) && matches.size() < analysis.complexity().getMaxRecommend()) {
+                        matches.add(new MatchResult(rs.techniqueId(), rs.techniqueName(),
+                                rs.confidence(), rs.reason()));
+                        existingIds.add(rs.techniqueId());
+                    }
+                }
+            }
+        }
+
+        // 5. 匹配技法组合配方
         var recipe = matchRecipe(input);
 
         // 5. 构建推荐结果（携带复杂度元数据）

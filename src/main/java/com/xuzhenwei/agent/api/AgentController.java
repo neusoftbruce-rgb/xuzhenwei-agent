@@ -37,6 +37,7 @@ public class AgentController {
     private final TokenSaver tokenSaver;
     private final TechniqueRegistry techniqueRegistry;
     private final TechniqueExecutor techniqueExecutor;
+    private final com.xuzhenwei.agent.technique.TechniqueRecommender techniqueRecommender;
     private final SessionService sessionService;
     private final ConversationManager conversationManager;
     private final RateLimiter rateLimiter;
@@ -53,6 +54,7 @@ public class AgentController {
                            TokenSaver tokenSaver,
                            TechniqueRegistry techniqueRegistry,
                            TechniqueExecutor techniqueExecutor,
+                           com.xuzhenwei.agent.technique.TechniqueRecommender techniqueRecommender,
                            SessionService sessionService,
                            ConversationManager conversationManager,
                            RateLimiter rateLimiter,
@@ -68,6 +70,7 @@ public class AgentController {
         this.tokenSaver = tokenSaver;
         this.techniqueRegistry = techniqueRegistry;
         this.techniqueExecutor = techniqueExecutor;
+        this.techniqueRecommender = techniqueRecommender;
         this.sessionService = sessionService;
         this.conversationManager = conversationManager;
         this.rateLimiter = rateLimiter;
@@ -97,6 +100,44 @@ public class AgentController {
         String conversationId = sessionId;
 
         String message = request.message();
+        String techniqueId = request.techniqueId();
+
+        // ---- v3.0 方法4: 复杂查询自动拆解 ----
+        var decompResult = decompositionService.analyze(message);
+        if (decompResult.shouldDecompose() && decompResult.hasSubQuestions()
+                && (techniqueId == null || "auto".equals(techniqueId))) {
+            log.info("复杂查询拆解: {} -> {}个子问题", message.substring(0, Math.min(50, message.length())),
+                    decompResult.subQuestions().size());
+            // 提取子问题文本作为批量分析的输入
+            List<String> subQuestions = decompResult.subQuestions().stream()
+                    .map(sq -> sq.focus() + ": " + sq.question())
+                    .toList();
+            // 对每个子问题做技法推荐，收集技法ID
+            List<String> allTechIds = new ArrayList<>();
+            for (String sq : subQuestions) {
+                var rec = techniqueRecommender.recommend(sq);
+                if (!rec.suggestions().isEmpty()) {
+                    allTechIds.add(rec.suggestions().get(0).techniqueId());
+                }
+            }
+            if (allTechIds.isEmpty()) {
+                allTechIds = List.of("003", "005"); // fallback
+            }
+            // 展示拆解信息 + 批量执行
+            String decompMsg = "🔬 检测到复杂问题（%d字/%d个子问题），自动拆解分析：\n\n".formatted(
+                    message.length(), decompResult.subQuestions().size());
+            for (int i = 0; i < decompResult.subQuestions().size(); i++) {
+                var sq = decompResult.subQuestions().get(i);
+                String tid = i < allTechIds.size() ? allTechIds.get(i) : "003";
+                var tech = techniqueRegistry.get(tid);
+                String techName = tech.map(t -> t.getName()).orElse("分析");
+                decompMsg += "**%d. %s** → [%s] %s\n".formatted(sq.index(), sq.question(), tid, techName);
+            }
+            decompMsg += "\n---\n";
+            return Flux.just(AgentEvent.stepContent(0, decompMsg, "decompose"))
+                    .concatWith(batchAnalysisService.executeBatch(message, allTechIds, sessionId))
+                    .onErrorResume(e -> Flux.just(toErrorEvent(e)));
+        }
 
         // ---- 智能判断是否需要深度思考 ----
         boolean useDeepThink;
@@ -109,8 +150,7 @@ public class AgentController {
         // ---- 压缩 Prompt ----
         String compressed = tokenSaver.compressPrompt(message);
 
-        // ---- 执行技法 ----
-        var techniqueId = request.techniqueId();
+        // ---- 执行技法 (techniqueId 已在方法开头提取) ----
 
         // 记录技法到会话
         if (techniqueId != null && !techniqueId.isBlank() && !"auto".equals(techniqueId)) {
