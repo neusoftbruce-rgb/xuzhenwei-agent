@@ -350,7 +350,7 @@ public class AgentEngine {
                                 "请对以上分析结果进行审阅，指出：\n1. 逻辑漏洞或未考虑的因素\n2. 可以做得更好的地方\n3. 一句话改进建议\n\n原始问题：" + userMessage,
                                 conversationId + "_verify"))
                         .concatWith(Flux.just(AgentEvent.stepContent(0,
-                                "\n> *🤖 自动交叉验证完成 — 方法031/027*".formatted(),
+                                "\n> *🤖 自动交叉验证完成 — 方法031/027*",
                                 "verify")))
         );
     }

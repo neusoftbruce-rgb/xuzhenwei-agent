@@ -144,32 +144,28 @@ public class FollowupService {
         return parseModelResponse(result);
     }
 
-    /** 解析模型返回的 JSON 追问数组 */
+    /** 解析模型返回的 JSON 追问数组 — v3.0 fix: 字段顺序灵活 */
     private FollowupSuggestions parseModelResponse(String json) {
         List<FollowupQuestion> qs = new ArrayList<>();
         try {
-            var textPattern = Pattern.compile("\"text\"\\s*:\\s*\"([^\"]+)\"");
-            var actionPattern = Pattern.compile("\"action\"\\s*:\\s*\"([^\"]+)\"");
+            var objPattern = java.util.regex.Pattern.compile("\\{[^}]+\\}");
+            var textPat = java.util.regex.Pattern.compile("\"text\"\\s*:\\s*\"([^\"]+)\"");
+            var actionPat = java.util.regex.Pattern.compile("\"action\"\\s*:\\s*\"([^\"]+)\"");
 
-            var textMatcher = textPattern.matcher(json);
-            var actionMatcher = actionPattern.matcher(json);
-
-            List<String> texts = new ArrayList<>();
-            List<String> actions = new ArrayList<>();
-
-            while (textMatcher.find()) texts.add(textMatcher.group(1));
-            while (actionMatcher.find()) actions.add(actionMatcher.group(1));
-
-            for (int i = 0; i < Math.min(texts.size(), actions.size()); i++) {
-                qs.add(new FollowupQuestion(texts.get(i), actions.get(i)));
+            var objMatcher = objPattern.matcher(json);
+            while (objMatcher.find()) {
+                String obj = objMatcher.group();
+                var tm = textPat.matcher(obj);
+                var am = actionPat.matcher(obj);
+                if (tm.find() && am.find()) {
+                    qs.add(new FollowupQuestion(tm.group(1), am.group(1)));
+                }
             }
         } catch (Exception e) {
             log.warn("解析追问JSON失败: {}", e.getMessage());
         }
 
-        if (qs.isEmpty()) {
-            return defaultFollowups();
-        }
+        if (qs.isEmpty()) return defaultFollowups();
         return new FollowupSuggestions(qs, true);
     }
 

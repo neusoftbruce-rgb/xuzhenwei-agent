@@ -187,22 +187,29 @@ public class TechniqueRecommender {
         }
     }
 
-    /** 解析智谱返回的语义匹配 JSON */
+    /** 解析智谱返回的语义匹配 JSON — v3.0 fix: 字段顺序灵活 */
     private List<MatchResult> parseSemanticResponse(String json) {
         List<MatchResult> results = new ArrayList<>();
         try {
-            // 提取 matches 数组中的每个对象
-            var pattern = java.util.regex.Pattern.compile(
-                    "\\{\\s*\"id\"\\s*:\\s*\"([^\"]+)\"\\s*,\\s*\"score\"\\s*:\\s*([0-9.]+)\\s*,\\s*\"reason\"\\s*:\\s*\"([^\"]+)\"\\s*\\}");
-            var matcher = pattern.matcher(json);
-            while (matcher.find()) {
-                String id = matcher.group(1);
-                double score = Double.parseDouble(matcher.group(2));
-                String reason = matcher.group(3);
-                var tech = registry.get(id);
-                if (tech.isPresent()) {
-                    results.add(new MatchResult(id, tech.get().getName(), score,
-                            "🔮 " + reason));
+            var objPattern = java.util.regex.Pattern.compile("\\{[^}]+\\}");
+            var idPat = java.util.regex.Pattern.compile("\"id\"\\s*:\\s*\"([^\"]+)\"");
+            var scorePat = java.util.regex.Pattern.compile("\"score\"\\s*:\\s*([0-9.]+)");
+            var reasonPat = java.util.regex.Pattern.compile("\"reason\"\\s*:\\s*\"([^\"]+)\"");
+
+            var objMatcher = objPattern.matcher(json);
+            while (objMatcher.find()) {
+                String obj = objMatcher.group();
+                var im = idPat.matcher(obj);
+                var sm = scorePat.matcher(obj);
+                var rm = reasonPat.matcher(obj);
+                if (im.find() && sm.find()) {
+                    String id = im.group(1);
+                    double score = Double.parseDouble(sm.group(1));
+                    String reason = rm.find() ? rm.group(1) : "";
+                    var tech = registry.get(id);
+                    if (tech.isPresent()) {
+                        results.add(new MatchResult(id, tech.get().getName(), score, "🔮 " + reason));
+                    }
                 }
             }
             results.sort((a, b) -> Double.compare(b.score, a.score));

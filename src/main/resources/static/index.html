@@ -270,6 +270,7 @@ body{font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'PingFang SC','M
 <script>
 let mode='auto', fastMode=false, streaming=false, currentTechLabel='', retryCount=0;
 let abortController=null, inputHistoryPos=-1, inputHistoryArr=[], _initDone=false;
+let currentSessionId='', techNameMap={}; // v3.0 fix: 全局会话ID和技法名称映射
 
 // 加载技法列表——按分类展示，不显示数量
 const CAT_DESC={
@@ -310,7 +311,7 @@ const CAT_CHAPTERS={
 fetch('/api/techniques').then(r=>r.json()).then(techs=>{
   const list=document.getElementById('techList');
   if(!list)return;
-  const byId={};techs.forEach(t=>{byId[t.id]=t});
+  const byId={};techs.forEach(t=>{byId[t.id]=t; techNameMap[t.id]={id:t.id,name:t.name};}); // v3.0: 全局技法名映射
   const categories=['快速产生灵感','打磨完善创意','落地执行创意','找到思考切入点'];
   categories.forEach(cat=>{
     const catGroup=document.createElement('div');
@@ -467,6 +468,7 @@ async function send(){
     fileContent=await readFilesContent(filesSnapshot);
   }
 
+  if(!currentSessionId)currentSessionId='web_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
   input.value='';input.style.height='auto';streaming=true;
   pushInput(text);abortController=new AbortController();
   document.getElementById('sendBtn').disabled=true;showStopBtn();
@@ -655,6 +657,7 @@ async function executeRecipe(ids,encodedText,btn){
   aiMsg.remove();
   for(let i=0;i<tidList.length;i++){
     var tid=tidList[i].trim();
+    if(!abortController)abortController=new AbortController(); // v3.0 fix: 每步重建
     addMsg('sys',`📌 配方第${i+1}步: 技法${tid}`);
     var stepBubble=addMsg('ai','<div class="typing"><span></span><span></span><span></span></div>');
     try{
@@ -720,7 +723,7 @@ async function streamToMsg(url,body,aiMsg){
         else if(e.type==='STEP_CONTENT'&&e.content){raw+=e.content;aiMsg.querySelector('.b').innerHTML=safeMarkdown(raw)}
 
         scrollDown();
-      }catch(ex){}
+      }catch(ex){console.error('streamToMsg parse error:',ex)}
     }
   }
 }
@@ -1012,16 +1015,18 @@ async function consultingDeepDive(encodedQuestion,encodedDimension,btn){
   var question=decodeURIComponent(escape(atob(encodedQuestion)));
   var dimension=decodeURIComponent(escape(atob(encodedDimension)));
   btn.textContent='深挖中...';btn.disabled=true;
-  var resultDiv=document.createElement('div');
-  resultDiv.style.cssText='margin:8px 0;padding:10px 14px;border-radius:10px;background:rgba(240,160,80,.04);border:1px solid rgba(240,160,80,.15);border-left:3px solid var(--warn)';
-  resultDiv.innerHTML='<div style="font-size:12px;color:var(--warn);font-weight:600;margin-bottom:6px">🔬 深挖: '+dimension+'</div><div class="typing"><span></span><span></span><span></span></div>';
-  btn.parentElement.after(resultDiv);
+  var wrapper=document.createElement('div');
+  wrapper.style.cssText='margin:8px 0;padding:10px 14px;border-radius:10px;background:rgba(240,160,80,.04);border:1px solid rgba(240,160,80,.15);border-left:3px solid var(--warn)';
+  var b=document.createElement('div');b.className='b';
+  b.innerHTML='<div style="font-size:12px;color:var(--warn);font-weight:600;margin-bottom:6px">🔬 深挖: '+dimension+'</div><div class="typing"><span></span><span></span><span></span></div>';
+  wrapper.appendChild(b);
+  btn.parentElement.after(wrapper);
   streaming=true;abortController=new AbortController();showStopBtn();
   try{
-    await streamToMsg('/api/agent/consulting/deep-dive',{question:question,dimension:dimension},resultDiv);
-    resultDiv.querySelector('.typing')?.remove();
+    await streamToMsg('/api/agent/consulting/deep-dive',{question:question,dimension:dimension},wrapper);
+    wrapper.querySelector('.typing')?.remove();
   }catch(e){
-    resultDiv.innerHTML='<span style="color:#f05050">❌ 深挖失败: '+(e.message||'未知错误')+'</span>';
+    b.innerHTML='<span style="color:#f05050">❌ 深挖失败: '+(e.message||'未知错误')+'</span>';
   }
   streaming=false;abortController=null;
   document.getElementById('sendBtn').disabled=false;hideStopBtn();

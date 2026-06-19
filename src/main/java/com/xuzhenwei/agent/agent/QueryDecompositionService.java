@@ -138,20 +138,29 @@ public class QueryDecompositionService {
         return parseDecompositionResponse(response);
     }
 
-    /** 解析模型返回的拆解 JSON */
+    /** 解析模型返回的拆解 JSON — v3.0 fix: 字段顺序灵活匹配 */
     private List<SubQuestion> parseDecompositionResponse(String json) {
         List<SubQuestion> subs = new ArrayList<>();
         try {
-            // 匹配每个子问题对象: {"index":1,"question":"...","focus":"..."}
-            var pattern = Pattern.compile(
-                    "\\{\\s*\"index\"\\s*:\\s*(\\d+)\\s*,\\s*\"question\"\\s*:\\s*\"([^\"]+)\"\\s*,\\s*\"focus\"\\s*:\\s*\"([^\"]+)\"\\s*\\}");
-            var matcher = pattern.matcher(json);
+            // 匹配每个子问题对象，字段顺序任意
+            var objPattern = Pattern.compile("\\{[^}]+\\}");
+            var indexPat = Pattern.compile("\"index\"\\s*:\\s*(\\d+)");
+            var questionPat = Pattern.compile("\"question\"\\s*:\\s*\"([^\"]+)\"");
+            var focusPat = Pattern.compile("\"focus\"\\s*:\\s*\"([^\"]+)\"");
 
-            while (matcher.find()) {
-                int index = Integer.parseInt(matcher.group(1));
-                String question = matcher.group(2);
-                String focus = matcher.group(3);
-                subs.add(new SubQuestion(index, question, focus));
+            var objMatcher = objPattern.matcher(json);
+            while (objMatcher.find()) {
+                String obj = objMatcher.group();
+                var im = indexPat.matcher(obj);
+                var qm = questionPat.matcher(obj);
+                var fm = focusPat.matcher(obj);
+                if (im.find() && qm.find() && fm.find()) {
+                    subs.add(new SubQuestion(
+                            Integer.parseInt(im.group(1)),
+                            qm.group(1),
+                            fm.group(1)
+                    ));
+                }
             }
         } catch (Exception e) {
             log.warn("解析拆解响应失败: {}", e.getMessage());
