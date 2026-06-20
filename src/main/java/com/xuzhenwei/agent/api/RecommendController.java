@@ -18,13 +18,16 @@ public class RecommendController {
     private final TechniqueRecommender recommender;
     private final TechniqueRegistry registry;
     private final RecommendationDecisionEngine decisionEngine;
+    private final com.xuzhenwei.agent.technique.RefreshStrategyEngine refreshEngine;
 
     public RecommendController(TechniqueRecommender recommender,
                                 TechniqueRegistry registry,
-                                RecommendationDecisionEngine decisionEngine) {
+                                RecommendationDecisionEngine decisionEngine,
+                                com.xuzhenwei.agent.technique.RefreshStrategyEngine refreshEngine) {
         this.recommender = recommender;
         this.registry = registry;
         this.decisionEngine = decisionEngine;
+        this.refreshEngine = refreshEngine;
     }
 
     /**
@@ -112,6 +115,50 @@ public class RecommendController {
                     "phases", phases
             ));
         }
+        return response;
+    }
+
+    /** v3.2 多策略刷新 */
+    @PostMapping("/refresh")
+    public Map<String, Object> refresh(@RequestBody Map<String, Object> req) {
+        String message = (String) req.getOrDefault("message", "");
+        int round = req.containsKey("round") ? ((Number) req.get("round")).intValue() : 1;
+        @SuppressWarnings("unchecked")
+        List<String> seenIds = (List<String>) req.getOrDefault("seenIds", List.of());
+        @SuppressWarnings("unchecked")
+        List<String> prevCats = (List<String>) req.getOrDefault("prevCategories", List.of());
+
+        var ctx = new com.xuzhenwei.agent.technique.RefreshStrategyEngine.RefreshContext(
+                message, round,
+                new java.util.LinkedHashSet<>(seenIds),
+                new java.util.LinkedHashSet<>(prevCats),
+                null, // 暂不传MECE计划
+                decisionEngine.analyze(message)
+        );
+
+        var result = refreshEngine.refresh(ctx);
+
+        List<Map<String, Object>> cards = new ArrayList<>();
+        for (var s : result.suggestions()) {
+            var tech = registry.get(s.techniqueId());
+            Map<String, Object> card = new LinkedHashMap<>();
+            card.put("id", s.techniqueId());
+            card.put("name", s.techniqueName());
+            card.put("confidence", Math.round(s.confidence() * 100));
+            card.put("reason", s.reason());
+            card.put("description", tech.map(t -> t.getDescription()).orElse(""));
+            cards.add(card);
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("strategy", Map.of(
+                "name", result.strategy().name(),
+                "label", result.strategy().getLabel(),
+                "description", result.strategy().getDescription()
+        ));
+        response.put("nextStrategy", refreshEngine.nextStrategy(round).getLabel());
+        response.put("cards", cards);
+        response.put("explanation", result.explanation());
         return response;
     }
 

@@ -271,6 +271,7 @@ body{font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'PingFang SC','M
 let mode='auto', fastMode=false, streaming=false, currentTechLabel='', retryCount=0;
 let abortController=null, inputHistoryPos=-1, inputHistoryArr=[], _initDone=false;
 let currentSessionId='', techNameMap={}; // v3.0 fix: 全局会话ID和技法名称映射
+let refreshRound=0, seenTechniqueIds=[], prevCategories=[]; // v3.2: 多策略换一批追踪
 
 // 加载技法列表——按分类展示，不显示数量
 const CAT_DESC={
@@ -634,6 +635,11 @@ async function send(){
   html+='</div>';
 
   b.innerHTML=html;
+  // v3.2: 记录本轮展示的技法ID和分类，为换一批追踪
+  refreshRound=0; seenTechniqueIds=[]; prevCategories=[];
+  if(recData&&recData.cards){
+    recData.cards.forEach(function(c){seenTechniqueIds.push(c.id); if(c.category)prevCategories.push(c.category)});
+  }
   scrollDown();
   streaming=false;abortController=null;
   document.getElementById('sendBtn').disabled=false;hideStopBtn();
@@ -682,12 +688,63 @@ async function executeRecipe(ids,encodedText,btn){
   document.getElementById('userInput').focus();
 }
 
+// v3.2: 多策略"换一批" — 5策略循环引擎
 async function retryRec(encodedText,btn){
-  btn.textContent='换一批中...';btn.disabled=true;
-  const oldRec=document.querySelector('.msg.recommend');if(oldRec)oldRec.remove();
-  retryCount++;
-  document.getElementById('userInput').value=decodeURIComponent(escape(atob(encodedText)));
-  send();}
+  btn.textContent='刷新中...';btn.disabled=true;
+  refreshRound++;
+  var oldRec=document.querySelector('.msg.recommend');if(oldRec)oldRec.remove();
+  var text=decodeURIComponent(escape(atob(encodedText)));
+
+  try{
+    var r=await fetch('/api/recommend/refresh',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:text, round:refreshRound, seenIds:seenTechniqueIds, prevCategories:prevCategories})});
+    var d=await r.json();
+
+    // 构建刷新卡片
+    var recMsg=addMsg('recommend','');
+    var b=recMsg.querySelector('.b');
+    var html='';
+
+    // 策略标签
+    if(d.strategy){
+      html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+      html+='<span style="font-size:10px;padding:2px 10px;border-radius:10px;background:rgba(240,160,80,.15);color:var(--warn);font-weight:600">'+d.strategy.label+'</span>';
+      html+='<span style="font-size:9px;color:var(--text2)">'+d.strategy.description+'</span>';
+      html+='<span style="font-size:9px;color:var(--text2);margin-left:auto">第'+refreshRound+'次 · 下次: '+d.nextStrategy+'</span>';
+      html+='</div>';
+    }
+
+    html+=d.explanation?'<div style="font-size:11px;color:var(--text2);margin-bottom:8px">'+d.explanation+'</div>':'';
+
+    html+='<div class="rec-cards">';
+    if(d.cards){
+      // v3.2 fix: 累积追踪(不清空)，确保跨轮去重
+      d.cards.forEach(function(c,i){
+        if(seenTechniqueIds.indexOf(c.id)===-1) seenTechniqueIds.push(c.id);
+        if(c.category && prevCategories.indexOf(c.category)===-1) prevCategories.push(c.category);
+        var top=i===0?' top':'';
+        html+='<div class="rec-card'+top+'" onclick="executeRec(\''+c.id+'\',\''+btoa(unescape(encodeURIComponent(text)))+'\')" title="点击执行"><div class="rc-hd"><span class="rc-id">'+c.id+'</span><span class="rc-name">'+c.name+'</span><span class="rc-pct">'+c.confidence+'%</span></div><div class="rc-desc">'+(c.description||'')+'</div><div class="rc-reason">💡 '+(c.reason||'')+'</div></div>';
+      });
+    }else{
+      html+='<div style="font-size:11px;color:var(--text2)">暂无更多推荐</div>';
+    }
+    html+='</div>';
+
+    if(d.cards&&d.cards.length>0){
+      var topId=d.cards[0].id;
+      html+='<div class="rec-actions">';
+      html+='<button class="btn-go" onclick="executeRec(\''+topId+'\',\''+btoa(unescape(encodeURIComponent(text)))+'\')">▶ 用推荐执行</button>';
+      html+='<button class="btn-swap" onclick="retryRec(\''+btoa(unescape(encodeURIComponent(text)))+'\',this)">🔄 换一批 ('+d.nextStrategy+')</button>';
+      html+='</div>';
+    }
+
+    b.innerHTML=html;
+    scrollDown();
+  }catch(e){
+    addMsg('sys','<span style="color:#f05050">❌ 刷新失败: '+(e.message||'')+'</span>');
+  }
+  btn.textContent='🔄 换一批';btn.disabled=false;
+}
 
 // v3.0 方法3: AI深度推荐（低置信度时触发）
 async function deepRec(encodedText,btn){
