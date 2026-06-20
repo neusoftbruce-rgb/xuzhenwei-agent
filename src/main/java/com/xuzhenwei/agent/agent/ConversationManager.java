@@ -32,6 +32,9 @@ public class ConversationManager {
     /** 会话最后访问时间（用于LRU淘汰） */
     private final Map<String, Long> lastAccessTime = new ConcurrentHashMap<>();
 
+    /** v3.4: 会话元数据存储 (key = convId, value = metadata map) */
+    private final Map<String, Map<String, String>> metadata = new ConcurrentHashMap<>();
+
     /** 每个会话最多保留多少条历史消息 (v2.5: 40→80) */
     private static final int MAX_HISTORY = 80;
 
@@ -172,6 +175,17 @@ public class ConversationManager {
         } catch (Exception e) {
             log.warn("消息持久化失败: {}", e.getMessage());
         }
+    }
+
+    /** v3.4: 设置会话元数据 */
+    public void setMetadata(String conversationId, String key, String value) {
+        metadata.computeIfAbsent(conversationId, k -> new ConcurrentHashMap<>()).put(key, value);
+    }
+
+    /** v3.4: 获取会话元数据 */
+    public String getMetadata(String conversationId, String key) {
+        var m = metadata.get(conversationId);
+        return m != null ? m.get(key) : null;
     }
 
     /**

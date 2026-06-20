@@ -169,6 +169,29 @@ public class RecommendationDecisionEngine {
         );
     }
 
+    /**
+     * v3.4: 用预处理管道提供的意图信息，不再重新推断。
+     * 预处理管道已经通过智谱精炼得到了更准确的 intent/domains/complexity。
+     */
+    public AnalysisContext analyzeWithIntent(String userInput,
+                                              com.xuzhenwei.agent.agent.TextPreprocessor.PreprocessResult.IntentAnalysis intent) {
+        IntentType intentType = switch (intent.intent()) {
+            case "诊断分析" -> IntentType.DIAGNOSIS;
+            case "创意发想" -> IntentType.IDEATION;
+            case "方案打磨" -> IntentType.REFINEMENT;
+            case "执行落地" -> IntentType.EXECUTION;
+            default -> IntentType.DIAGNOSIS;
+        };
+        ComplexityLevel complexity = intent.complexity() >= 7 ? ComplexityLevel.COMPLEX_MULTI
+            : intent.complexity() >= 5 ? ComplexityLevel.SINGLE_DOMAIN
+            : ComplexityLevel.SIMPLE_FACTUAL;
+        return new AnalysisContext(complexity, intentType,
+            userInput != null ? userInput.length() : 0,
+            intent.subQuestions().size(),
+            userInput != null && userInput.length() > 200
+        );
+    }
+
     /** 统计问号数量 */
     private int countQuestionMarks(String input) {
         if (input == null) return 0;

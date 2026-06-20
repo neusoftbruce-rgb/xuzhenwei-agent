@@ -44,6 +44,7 @@ public class AgentEngine {
     private final TechniqueRecommender techniqueRecommender;
     private final DomainAdvisor domainAdvisor;
     private final RecommendationDecisionEngine decisionEngine;
+    private final TextPreprocessor textPreprocessor;
 
     public AgentEngine(ChatClient chatClient,
                        ConversationManager conversationManager,
@@ -51,7 +52,8 @@ public class AgentEngine {
                        TechniqueExecutor techniqueExecutor,
                        TechniqueRecommender techniqueRecommender,
                        DomainAdvisor domainAdvisor,
-                       RecommendationDecisionEngine decisionEngine) {
+                       RecommendationDecisionEngine decisionEngine,
+                       TextPreprocessor textPreprocessor) {
         this.chatClient = chatClient;
         this.conversationManager = conversationManager;
         this.techniqueRegistry = techniqueRegistry;
@@ -59,6 +61,7 @@ public class AgentEngine {
         this.techniqueRecommender = techniqueRecommender;
         this.domainAdvisor = domainAdvisor;
         this.decisionEngine = decisionEngine;
+        this.textPreprocessor = textPreprocessor;
     }
 
     /**
@@ -113,7 +116,19 @@ public class AgentEngine {
      * </ul>
      */
     private Flux<AgentEvent> autoRecommendAndExecute(String conversationId, String userMessage) {
-        var recommendation = techniqueRecommender.recommend(userMessage);
+        // v3.4: 文本预处理管道 (文件内容已嵌入userMessage，传null即可)
+        var preprocess = textPreprocessor.process(userMessage, null);
+
+        // SSE: 推送预处理进度
+        int typoCount = (int) preprocess.rawKeywords().stream().filter(k -> k.suspectedTypo()).count();
+        Flux<AgentEvent> preprocessEvents = Flux.just(
+            AgentEvent.preprocessStart(),
+            AgentEvent.preprocessPhase1(preprocess.rawKeywords().size(), typoCount),
+            AgentEvent.preprocessPhase2(preprocess.intentAnalysis().intent(),
+                String.join("·", preprocess.intentAnalysis().domains()))
+        );
+
+        var recommendation = techniqueRecommender.recommend(userMessage, false, preprocess);
         var suggestions = recommendation.suggestions();
         var topConfidence = suggestions.isEmpty() ? 0.0 : suggestions.get(0).confidence();
         var analysisContext = recommendation.complexity();
@@ -123,10 +138,10 @@ public class AgentEngine {
         if (topConfidence >= 0.90) {
             var best = suggestions.get(0);
             log.info("高置信度自动执行: {} ({}%)", best.techniqueId(), (int)(topConfidence*100));
-            return Flux.just(AgentEvent.stepContent(0,
+            return preprocessEvents.concatWith(Flux.just(AgentEvent.stepContent(0,
                     "🎯 自动匹配「**%s**」(置信度 %.0f%%)，直接为你分析：\n\n".formatted(
                             best.techniqueName(), topConfidence * 100), "auto-routing"))
-                    .concatWith(techniqueExecutor.execute(best.techniqueId(), userMessage, conversationId));
+                    .concatWith(techniqueExecutor.execute(best.techniqueId(), userMessage, conversationId)));
         }
 
         // 路径B: 80-89% → 展示推荐 + 自动执行
@@ -140,8 +155,8 @@ public class AgentEngine {
             header = header.concatWith(Flux.just(AgentEvent.stepContent(0,
                     "\n⚡ 高置信度匹配 (%.0f%%)，自动执行「**%s**」...\n\n".formatted(
                             topConfidence * 100, best.techniqueName()), "auto-routing")));
-            return header.concatWith(
-                    techniqueExecutor.execute(best.techniqueId(), userMessage, conversationId));
+            return preprocessEvents.concatWith(header.concatWith(
+                    techniqueExecutor.execute(best.techniqueId(), userMessage, conversationId)));
         }
 
         // 路径C: 50-79% → 推荐卡片（等用户在前端确认）
@@ -160,25 +175,25 @@ public class AgentEngine {
                                 "auto-recipe-hint")
                 ));
             }
-            return header;
+            return preprocessEvents.concatWith(header);
         }
 
         // 路径D: < 50% → 低置信度，触发 LLM 深度推荐或回退
         log.info("低置信度({}%)，触发LLM深度推荐", (int)(topConfidence*100));
         if (!suggestions.isEmpty()) {
             var best = suggestions.get(0);
-            return Flux.just(
+            return preprocessEvents.concatWith(Flux.just(
                     AgentEvent.stepContent(0,
                             "🤔 你的问题比较复杂，让我仔细分析一下...\n\n", "auto-low-confidence"),
                     AgentEvent.stepContent(0,
                             "💡 初步判断：「**%s**」(%.0f%%) 可能适合，正在深度分析确认...\n\n"
                                     .formatted(best.techniqueName(), topConfidence * 100),
                             "auto-low-confidence")
-            ).concatWith(techniqueExecutor.execute(best.techniqueId(), userMessage, conversationId));
+            ).concatWith(techniqueExecutor.execute(best.techniqueId(), userMessage, conversationId)));
         }
 
         // 终极回退
-        return techniqueExecutor.execute("003", userMessage, conversationId);
+        return preprocessEvents.concatWith(techniqueExecutor.execute("003", userMessage, conversationId));
     }
 
     /** 将推荐建议格式化为卡片文本（供 SSE 流输出） */

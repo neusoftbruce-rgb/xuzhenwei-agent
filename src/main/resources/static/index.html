@@ -147,6 +147,16 @@ body{font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'PingFang SC','M
 .fbtn .icon{font-size:13px}
 .fbtn input[type=file]{display:none}
 
+/* v3.4 预处理卡片 */
+.preprocess-card{background:rgba(124,92,252,.04);border:1px solid rgba(124,92,252,.2);border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:12px;animation:fadeIn .3s}
+.preprocess-card .pp-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.preprocess-card .pp-title{color:var(--accent2);font-weight:600}
+.preprocess-card .pp-body{display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.preprocess-card.open .pp-body{display:block}
+.pp-kw{display:inline-block;padding:2px 8px;margin:2px;border-radius:6px;background:rgba(124,92,252,.1);font-size:10px;color:var(--accent2)}
+.pp-kw.typo{background:rgba(240,160,80,.15);color:var(--warn);text-decoration:line-through}
+.pp-kw.typo::after{content:' → 'attr(data-fix);text-decoration:none;color:var(--accent3)}
+
 .input-row{display:flex;gap:8px;align-items:flex-end}
 .input-row textarea{flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#1e1e38;color:var(--text);font-size:14px;font-family:inherit;line-height:1.5;resize:none;outline:none;min-height:44px;max-height:150px}
 .input-row textarea:focus{border-color:var(--accent)}
@@ -782,6 +792,17 @@ async function streamToMsg(url,body,aiMsg){
         if(e.techniqueId==='deepthink-final'){
           if(e.type==='STEP_START'){finalMsg=addMsg('ai final','');raw=''}
           if(e.type==='STEP_CONTENT'&&finalMsg){raw+=e.content||'';finalMsg.querySelector('.b').innerHTML=safeMarkdown(raw)}
+          continue;
+        }
+        // v3.4: 预处理管道事件
+        if(e.type==='PREPROCESS_START'){
+          var pp=document.createElement('div');pp.className='preprocess-card open';pp.id='preprocessCard';
+          pp.innerHTML='<div class="pp-header" onclick="this.parentElement.classList.toggle(\'open\')"><span class="pp-title">🔍 文本预处理</span><span class="pp-status" style="font-size:10px;color:var(--text2)">进行中...</span><span style="font-size:10px">展开▼</span></div><div class="pp-body"></div>';
+          aiMsg.before(pp);setTimeout(function(){pp.classList.remove('open')},4000);
+          continue;
+        }
+        if(e.type==='PREPROCESS_PHASE1'||e.type==='PREPROCESS_PHASE2'){
+          var pp=document.getElementById('preprocessCard');if(pp)pp.querySelector('.pp-status').textContent=e.stepName||e.content||'';
           continue;
         }
         if(e.type==='STEP_START'&&e.stepNumber===99){raw='';aiMsg.classList.add('refined')}

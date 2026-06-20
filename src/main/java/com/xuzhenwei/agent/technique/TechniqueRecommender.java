@@ -132,6 +132,81 @@ public class TechniqueRecommender {
     }
 
     /**
+     * v3.4: 接收预处理结果，用精炼文本+意图分析替代原始输入做推荐。
+     * 预处理管道已提供更准确的意图/领域/复杂度，跳过本地分析步骤。
+     */
+    public RecommendationResult recommend(String userInput, boolean shuffle,
+                                           com.xuzhenwei.agent.agent.TextPreprocessor.PreprocessResult preprocess) {
+        if (preprocess == null || preprocess.correctedText() == null) {
+            return recommend(userInput, shuffle);
+        }
+
+        String input = preprocess.correctedText().toLowerCase();
+
+        // 用预处理意图替代本地分析
+        var analysis = (preprocess.intentAnalysis() != null)
+            ? decisionEngine.analyzeWithIntent(userInput, preprocess.intentAnalysis())
+            : decisionEngine.analyze(userInput);
+
+        // 后续流程跟原 recommend() 一致，只是 input/analysis 来自预处理管道
+        var domainMatch = domainAdvisor.matchBusiness(userInput);
+        var matches = keywordMatch(input, shuffle);
+
+        if (matches.size() < 3 && matches.size() < analysis.complexity().getMinRecommend()) {
+            var semanticMatches = semanticMatch(userInput, matches);
+            if (!semanticMatches.isEmpty()) {
+                Set<String> existingIds = new java.util.HashSet<>();
+                matches.forEach(m -> existingIds.add(m.techniqueId));
+                for (var sm : semanticMatches) {
+                    if (!existingIds.contains(sm.techniqueId)) {
+                        matches.add(sm); existingIds.add(sm.techniqueId);
+                    }
+                }
+                matches.sort((a, b) -> Double.compare(b.score, a.score));
+            }
+        }
+
+        if (!matches.isEmpty()) {
+            var topId = matches.get(0).techniqueId;
+            var relatedSuggestions = techniqueRelations.suggestPath(topId, registry);
+            if (!relatedSuggestions.isEmpty()) {
+                Set<String> existingIds = new java.util.HashSet<>();
+                matches.forEach(m -> existingIds.add(m.techniqueId));
+                for (var rs : relatedSuggestions) {
+                    if (!existingIds.contains(rs.techniqueId()) && matches.size() < analysis.complexity().getMaxRecommend()) {
+                        matches.add(new MatchResult(rs.techniqueId(), rs.techniqueName(),
+                                rs.confidence(), rs.reason()));
+                        existingIds.add(rs.techniqueId());
+                    }
+                }
+            }
+        }
+
+        var recipe = matchRecipe(input);
+        var mecePlan = meceEngine.plan(analysis, userInput);
+        List<TechniqueSuggestion> finalSuggestions;
+
+        if (mecePlan.totalSlots() > 0 && matches.size() < mecePlan.totalSlots()) {
+            finalSuggestions = fillByMece(matches.stream().map(MatchResult::toSuggestion)
+                    .collect(java.util.stream.Collectors.toList()), mecePlan, analysis, userInput);
+        } else if (!matches.isEmpty()) {
+            finalSuggestions = matches.stream().map(MatchResult::toSuggestion).toList();
+        } else {
+            finalSuggestions = List.of(new TechniqueSuggestion("003", "半成品激发法", 0.6,
+                    "这是最好的开场技法——先让AI出几个不完美的方案，激发你的灵感"));
+        }
+
+        String explain = preprocess.intentAnalysis() != null && preprocess.intentAnalysis().coreQuestion() != null
+            ? "📊 「%s」→ %s · %s".formatted(preprocess.intentAnalysis().coreQuestion(),
+                preprocess.intentAnalysis().intent(),
+                mecePlan.totalSlots() > 0 ? mecePlan.reasoning() : "推荐以下技法：")
+            : mecePlan.totalSlots() > 0 ? mecePlan.reasoning() : "根据你的问题，推荐以下技法：";
+
+        return new RecommendationResult(finalSuggestions, recipe, explain,
+                analysis.complexity(), finalSuggestions.size(), mecePlan);
+    }
+
+    /**
      * v3.1 用 MECE 计划补全技法选择 —— 确保四阶段覆盖
      */
     private List<TechniqueSuggestion> fillByMece(List<TechniqueSuggestion> keywordMatches,
