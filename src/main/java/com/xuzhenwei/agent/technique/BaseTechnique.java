@@ -39,8 +39,8 @@ public abstract class BaseTechnique implements Technique {
             sink.next(AgentEvent.stepStart(step, stepName, getId()));
 
             try {
-                String key = convId + "_" + getId();
-                String history = conversationManager.formatHistory(key);
+                // v3.3 fix: 使用共享的 convId（不带技法后缀），确保跨技法记忆连贯
+                String history = conversationManager.formatHistory(convId);
                 String fullPrompt = history.isEmpty() ? prompt : history + "\n\n" + prompt;
 
                 StringBuilder fullResponse = new StringBuilder();
@@ -50,7 +50,9 @@ public abstract class BaseTechnique implements Technique {
                         .stream()
                         .content()
                         .doOnComplete(() -> {
-                            conversationManager.append(key, "AI", fullResponse.toString());
+                            // 同时存两份：共享记忆（convId）+ 技法隔离记忆（convId_技法ID）供单独查询
+                            conversationManager.append(convId, "AI", fullResponse.toString());
+                            conversationManager.append(convId + "_" + getId(), "AI", fullResponse.toString());
                             sink.next(AgentEvent.stepComplete(step, getId()));
                             sink.complete();
                         })

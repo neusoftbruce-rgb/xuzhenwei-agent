@@ -412,6 +412,19 @@ public class TechniqueRecommender {
         keywordMap.put("定价", match("050", 0.8, "全方位满意度提升法，从价格到体验全优化"));
         keywordMap.put("品牌", match("023", 0.85, "跨界商业模式借鉴，看看隔壁行业怎么玩的"));
 
+        // === 农业/种植 (v3.3) ===
+        keywordMap.put("西红柿", match("005", 0.85, "虚拟专家团多角度分析，从种植到销售全覆盖"));
+        keywordMap.put("番茄", match("005", 0.85, "虚拟专家团多角度分析，从种植到销售全覆盖"));
+        keywordMap.put("高糖", match("040", 0.85, "障碍根因分析法，深挖高糖栽培的关键变量"));
+        keywordMap.put("种植", match("040", 0.8, "障碍根因分析法，从土壤到管理逐一排查"));
+        keywordMap.put("大棚", match("005", 0.8, "虚拟专家团会诊，覆盖设施、品种、市场"));
+        keywordMap.put("温室", match("005", 0.8, "虚拟专家团会诊，覆盖设施、品种、市场"));
+        keywordMap.put("作物", match("040", 0.8, "障碍根因分析法，找到影响产量品质的根因"));
+        keywordMap.put("病害", match("040", 0.9, "障碍根因分析法，从病原到环境全面诊断"));
+        keywordMap.put("土壤", match("040", 0.85, "障碍根因分析法，土壤问题是大多数种植问题的根因"));
+        keywordMap.put("产量", match("034", 0.8, "18个月财务预测，算清投入产出账"));
+        keywordMap.put("农产品", match("001", 0.8, "跨界特征联想法，找到你的产品独特卖点"));
+
         // === AI独学50TIPS（v2.1：纳入自动推荐）===
         keywordMap.put("整理思绪", match("TIPS-01", 0.85, "通过与AI对话，把混乱思绪梳理清楚、分级"));
         keywordMap.put("太乱了", match("TIPS-01", 0.8, "让AI帮你把杂乱思绪分类整理"));
