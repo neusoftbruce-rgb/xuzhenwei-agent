@@ -145,7 +145,8 @@ body{font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'PingFang SC','M
 .fbtn.file{border-color:rgba(124,92,252,.3);color:var(--accent)}
 .fbtn.folder{border-color:rgba(91,141,239,.3);color:var(--accent2)}
 .fbtn .icon{font-size:13px}
-.fbtn input[type=file]{display:none}
+.fbtn.file,.fbtn.folder{position:relative;overflow:hidden}
+.fbtn input[type=file]{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer}
 
 .input-row{display:flex;gap:8px;align-items:flex-end}
 .input-row textarea{flex:1;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#1e1e38;color:var(--text);font-size:14px;font-family:inherit;line-height:1.5;resize:none;outline:none;min-height:44px;max-height:150px}
@@ -234,11 +235,11 @@ body{font-family:'Google Sans',-apple-system,BlinkMacSystemFont,'PingFang SC','M
 
   <div class="input-zone">
     <div class="input-tools">
-      <label class="fbtn file" onclick="this.querySelector('input').click()">
+      <label class="fbtn file">
         <span class="icon">📁</span> 选择文件
         <input type="file" multiple accept=".md,.txt,.csv,.json,.xml,.yml,.yaml,.html,.log,.java,.py,.js,.ts,.css,.pdf" onchange="handleFiles(this.files)">
       </label>
-      <label class="fbtn folder" onclick="this.querySelector('input').click()">
+      <label class="fbtn folder">
         <span class="icon">📂</span> 选择文件夹
         <input type="file" webkitdirectory directory multiple onchange="handleFiles(this.files)">
       </label>
